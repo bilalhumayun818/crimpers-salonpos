@@ -48,7 +48,7 @@
 .fc .fc-daygrid-day.fc-day-today,.fc .fc-timegrid-col.fc-day-today{background:rgba(247,223,121,.04) !important;}
 .fc .fc-timegrid-now-indicator-line{border-color:#F7DF79 !important;border-width:2px !important;}
 .fc .fc-timegrid-now-indicator-arrow{border-top-color:#F7DF79 !important;border-bottom-color:#F7DF79 !important;}
-.fc-event{border-radius:6px !important;border:none !important;font-size:.78rem !important;font-weight:600 !important;padding:2px 6px !important;}
+.fc-event{background:transparent !important;border:none !important;padding:0 !important;box-shadow:none !important;}
 .fc .fc-scrollgrid{border-color:#f1f5f9 !important;}
 .fc td,.fc th{border-color:#f1f5f9 !important;}
 .fc .fc-toolbar{margin-bottom:16px !important;}
@@ -135,22 +135,58 @@ document.addEventListener('DOMContentLoaded', function () {
         initialView: 'timeGridWeek',
         height: 'calc(100vh - 220px)',
         headerToolbar: { left:'prev,next today', center:'title', right:'dayGridMonth,timeGridWeek,timeGridDay' },
-        events: '{{ url("/appointments/calendar/events") }}',
+        events: '{{ route("appointments.events") }}',
         editable: true,
         nowIndicator: true,
         slotMinTime: '{{ $openingTime }}',
         slotMaxTime: '{{ $calendarMaxTime }}',
         allDaySlot: false,
-        slotEventOverlap: false,
+        slotEventOverlap: true,
         dayMaxEvents: true,
         eventTimeFormat: { hour:'numeric', minute:'2-digit', meridiem:'short' },
         eventContent: function(arg) {
             let status = arg.event.extendedProps.status || 'scheduled';
+            let staff = arg.event.extendedProps.staff || 'Unassigned';
+            let customer = arg.event.extendedProps.customer || 'Guest';
+            let service = arg.event.extendedProps.service || 'Service';
+            
+            // Get base colors based on status
+            let colors = {
+                arrived:   { bg: '#f0fdf4', border: '#22c55e', text: '#166534' },
+                late:      { bg: '#fef9c3', border: '#eab308', text: '#854d0e' },
+                discarded: { bg: '#fef2f2', border: '#ef4444', text: '#991b1b' },
+                completed: { bg: '#faf5ff', border: '#a855f7', text: '#6b21a8' },
+                cancelled: { bg: '#f8fafc', border: '#64748b', text: '#334155' },
+                scheduled: { bg: '#eff6ff', border: '#3b82f6', text: '#1e40af' }
+            };
+            
+            let scheme = colors[status] || colors.scheduled;
+            
             let el = document.createElement('div');
-            el.className = 'fc-custom-event';
+            el.className = 'fc-custom-event-card';
+            el.style.display = 'flex';
+            el.style.flexDirection = 'column';
+            el.style.height = '100%';
+            el.style.width = '100%';
+            el.style.padding = '4px 6px 4px 8px';
+            el.style.borderRadius = '6px';
+            el.style.background = scheme.bg;
+            el.style.borderLeft = `3.5px solid ${scheme.border}`;
+            el.style.color = scheme.text;
+            el.style.overflow = 'hidden';
+            el.style.fontSize = '0.75rem';
+            el.style.lineHeight = '1.25';
+            el.style.gap = '1px';
+            el.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)';
+            
             el.innerHTML = `
-                <div style="font-size:0.65rem; font-weight:800; opacity:0.8; text-transform:uppercase;">${status}</div>
-                <div style="font-size:0.85rem; font-weight:700; overflow:hidden; text-overflow:ellipsis;">${arg.event.title}</div>
+                <div style="font-size:0.58rem; font-weight:800; opacity:0.85; text-transform:uppercase; letter-spacing:0.02em;">${status}</div>
+                <div style="font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-bottom:1px;" title="${customer}">${customer}</div>
+                <div style="font-size:0.68rem; font-weight:600; opacity:0.9; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${service}">${service}</div>
+                <div style="font-size:0.62rem; opacity:0.75; display:flex; align-items:center; gap:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="Staff: ${staff}">
+                    <svg width="8" height="8" fill="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                    <span>${staff}</span>
+                </div>
             `;
             return { domNodes: [el] };
         },

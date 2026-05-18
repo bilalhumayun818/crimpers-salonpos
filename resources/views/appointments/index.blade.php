@@ -102,7 +102,7 @@
                         </div>
                     </div>
                 </td>
-                <td style="font-weight:500;color:#1e293b;">{{ $appt->service->name }}</td>
+                <td style="font-weight:500;color:#1e293b;">{{ $appt->service ? $appt->service->name : ($appt->servicePackage ? $appt->servicePackage->name : 'Unassigned') }}</td>
                 <td style="color:#64748b;">{{ $appt->staff->name ?? 'Unassigned' }}</td>
                 <td>
                     <div class="datetime-main">{{ $appt->appointment_date->format('M j, Y') }}</div>

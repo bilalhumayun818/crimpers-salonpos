@@ -57,22 +57,31 @@ textarea.f-input{resize:vertical;min-height:90px;}
         <div class="f-row-2">
           <div>
             <label class="f-label">Service</label>
-            <select name="service_id" required class="f-input">
-              <option value="">Select service</option>
+            <select id="serviceSelect" name="service_id" class="f-input">
+              <option value="">Select service…</option>
               @foreach($services as $s)
               <option value="{{ $s->id }}" {{ $appointment->service_id==$s->id?'selected':'' }}>{{ $s->name }}</option>
               @endforeach
             </select>
           </div>
           <div>
-            <label class="f-label">Staff Member (Optional)</label>
-            <select name="staff_id" class="f-input">
-              <option value="">No staff assigned…</option>
-              @foreach($staffMembers as $s)
-              <option value="{{ $s->id }}" {{ $appointment->staff_id==$s->id?'selected':'' }}>{{ $s->name }}</option>
+            <label class="f-label">Or Choose Package</label>
+            <select id="packageSelect" name="service_package_id" class="f-input">
+              <option value="">Select package…</option>
+              @foreach($packages as $p)
+              <option value="{{ $p->id }}" {{ $appointment->service_package_id==$p->id?'selected':'' }}>{{ $p->name }}</option>
               @endforeach
             </select>
           </div>
+        </div>
+        <div class="f-row">
+          <label class="f-label">Staff Member (Optional)</label>
+          <select name="staff_id" class="f-input">
+            <option value="">No staff assigned…</option>
+            @foreach($staffMembers as $s)
+            <option value="{{ $s->id }}" {{ $appointment->staff_id==$s->id?'selected':'' }}>{{ $s->name }}</option>
+            @endforeach
+          </select>
         </div>
         <div class="f-row">
           <label class="f-label">Appointment Date</label>
@@ -124,4 +133,23 @@ textarea.f-input{resize:vertical;min-height:90px;}
     </form>
   </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const serviceSelect = document.getElementById('serviceSelect');
+    const packageSelect = document.getElementById('packageSelect');
+
+    serviceSelect.addEventListener('change', function() {
+        if (this.value) {
+            packageSelect.value = '';
+        }
+    });
+
+    packageSelect.addEventListener('change', function() {
+        if (this.value) {
+            serviceSelect.value = '';
+        }
+    });
+});
+</script>
 @endsection

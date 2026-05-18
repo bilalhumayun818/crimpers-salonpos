@@ -14,7 +14,78 @@
 
 .amt-badge { background: #fffdf0; border: 1px solid #F7DF79; color: #a07800; padding: 4px 10px; border-radius: 99px; font-weight: 700; font-size: 0.8rem; }
 .perf-badge { background: #f0f9ff; border: 1px solid #bae6fd; color: #0369a1; padding: 4px 10px; border-radius: 99px; font-weight: 700; font-size: 0.8rem; }
-.rating-stars { color: #fbbf24; }
+    .rating-stars { color: #fbbf24; }
+
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, .45);
+        backdrop-filter: blur(4px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 999;
+        padding: 20px;
+    }
+
+    .modal-box {
+        background: #fff;
+        border-radius: 18px;
+        width: 100%;
+        max-width: 380px;
+        padding: 26px;
+        text-align: center;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, .2);
+    }
+
+    .modal-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 14px;
+    }
+
+    .modal-title {
+        font-size: 1.05rem;
+        font-weight: 800;
+        margin-bottom: 6px;
+    }
+
+    .modal-text {
+        font-size: .82rem;
+        color: #71717a;
+        line-height: 1.6;
+        margin-bottom: 20px;
+    }
+
+    .modal-footer {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-m {
+        flex: 1;
+        padding: 10px;
+        border-radius: 9px;
+        font-size: .85rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: .2s;
+        border: none;
+    }
+
+    .btn-m-cancel {
+        background: #f4f4f5;
+        color: #52525b;
+    }
+
+    .btn-m-confirm {
+        color: #fff;
+    }
 </style>
 
 <div class="dash-card">
@@ -45,7 +116,10 @@
                         </div>
                         <div>
                             <div style="font-weight:700; color:#1e293b;">{{ $s->name }}</div>
-                            <div style="font-size:0.7rem; color:#64748b;">{{ $s->position }}</div>
+                            <div style="font-size:0.7rem; color:#64748b; display:flex; align-items:center; gap:6px; margin-top:2px;">
+                                <span>{{ $s->position }}</span>
+                                <span style="background:#e0f2fe; color:#0369a1; padding:1px 6px; border-radius:4px; font-weight:700; font-size:0.6rem;">{{ $s->days_since_last_payment }}d passed</span>
+                            </div>
                         </div>
                     </div>
                 </td>
@@ -67,12 +141,93 @@
                 </td>
                 <td><span class="amt-badge">+ PKR {{ number_format($s->total_earned_commission, 2) }}</span></td>
                 <td><span style="font-weight:800; color:#16a34a; font-size:1rem;">PKR {{ number_format($s->base_salary + $s->total_earned_commission, 2) }}</span></td>
-                <td>
-                    <a href="{{ route('staff.show', $s) }}" class="perf-badge" style="text-decoration:none;">View Full Stats</a>
+                <td style="display: flex; gap: 8px; align-items: center;">
+                    <a href="{{ route('staff.salary-performance', $s) }}" class="perf-badge" style="text-decoration:none;">View Full Stats</a>
+                    @php
+                        $btnColor = $s->days_since_last_payment >= 30 ? '#16a34a' : '#64748b';
+                    @endphp
+                    <button type="button" 
+                            style="background:{{ $btnColor }}; color:#fff; border:none; padding:4px 10px; border-radius:99px; font-weight:700; font-size:0.8rem; cursor:pointer; transition:.15s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
+                            onclick="showDashboardPayModal({{ $s->id }}, '{{ addslashes($s->name) }}', {{ $s->days_since_last_payment }})">
+                        Paid
+                    </button>
+                    <form id="pay-form-{{ $s->id }}" method="POST" action="{{ route('staff.pay-salary', $s) }}" style="display:none;">
+                        @csrf
+                    </form>
                 </td>
             </tr>
             @endforeach
         </tbody>
     </table>
 </div>
+
+{{-- Global Dashboard Modal --}}
+<div class="modal-overlay" id="dashboardPayModal">
+    <div class="modal-box">
+        <div class="modal-icon" id="d-modal-icon-container">
+            <svg id="d-modal-icon" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"></svg>
+        </div>
+        <div class="modal-title" id="d-modal-title"></div>
+        <div class="modal-text" id="d-modal-text"></div>
+        <div class="modal-footer">
+            <button class="btn-m btn-m-cancel" onclick="hideDashboardPayModal()">Cancel</button>
+            <button class="btn-m btn-m-confirm" id="d-modal-confirm-btn" onclick="submitDashboardPayForm()">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let activePayFormId = null;
+
+    function showDashboardPayModal(staffId, staffName, daysPassed) {
+        activePayFormId = 'pay-form-' + staffId;
+        const modal = document.getElementById('dashboardPayModal');
+        const iconContainer = document.getElementById('d-modal-icon-container');
+        const iconSvg = document.getElementById('d-modal-icon');
+        const titleEl = document.getElementById('d-modal-title');
+        const textEl = document.getElementById('d-modal-text');
+        const confirmBtn = document.getElementById('d-modal-confirm-btn');
+
+        if (daysPassed < 30) {
+            // RED early warning alert modal
+            iconContainer.style.background = '#fef2f2';
+            iconContainer.style.color = '#ef4444';
+            iconSvg.innerHTML = '<path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>';
+            
+            titleEl.style.color = '#b91c1c';
+            titleEl.textContent = 'Pay Early Salary Warning!';
+            
+            textEl.innerHTML = `<strong>WARNING:</strong> Staff <strong>${staffName}</strong>'s 30 days have not passed! <br><br> Are you sure you want to pay him salary before 30 days?`;
+            
+            confirmBtn.style.background = '#ef4444';
+            confirmBtn.textContent = 'Yes, Pay Early';
+        } else {
+            // GREEN normal payment modal
+            iconContainer.style.background = '#f0fdf4';
+            iconContainer.style.color = '#16a34a';
+            iconSvg.innerHTML = '<path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>';
+            
+            titleEl.style.color = '#18181b';
+            titleEl.textContent = 'Pay Staff Salary?';
+            
+            textEl.innerHTML = `Are you sure you want to mark <strong>${staffName}</strong>'s salary as paid? <br>This will reset their earned commission to PKR 0.00 and start a fresh payment cycle.`;
+            
+            confirmBtn.style.background = '#16a34a';
+            confirmBtn.textContent = 'Yes, Mark Paid';
+        }
+
+        modal.style.display = 'flex';
+    }
+
+    function hideDashboardPayModal() {
+        document.getElementById('dashboardPayModal').style.display = 'none';
+        activePayFormId = null;
+    }
+
+    function submitDashboardPayForm() {
+        if (activePayFormId) {
+            document.getElementById(activePayFormId).submit();
+        }
+    }
+</script>
 @endsection

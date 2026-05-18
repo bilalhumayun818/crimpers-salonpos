@@ -307,4 +307,35 @@ class StaffController extends Controller
         $staff = Staff::all();
         return view('staff.salary-dashboard', compact('staff'));
     }
+
+    public function salaryPerformance(Staff $staff)
+    {
+        $invoices = \App\Models\Invoice::where('staff_id', $staff->id)
+            ->with(['customer', 'items.itemizable'])
+            ->latest()
+            ->paginate(15);
+
+        return view('staff.salary-performance', compact('staff', 'invoices'));
+    }
+
+    public function paySalary(Staff $staff)
+    {
+        $totalPaid = $staff->base_salary + $staff->total_earned_commission;
+
+        // Record the expense in the expenses history
+        \App\Models\Expense::create([
+            'branch_id' => auth()->user()->branch_id ?? 1,
+            'description' => "Salary Paid to " . $staff->name . " (Base: PKR " . number_format($staff->base_salary, 2) . ", Commission: PKR " . number_format($staff->total_earned_commission, 2) . ")",
+            'amount' => $totalPaid,
+            'deducted_from_drawer' => false,
+            'user_id' => auth()->id() ?? 1,
+        ]);
+
+        $staff->update([
+            'total_earned_commission' => 0,
+            'last_paid_at' => now(),
+        ]);
+
+        return redirect()->back()->with('success', 'Salary successfully marked as Paid. Commissions and work days have been reset for the new cycle!');
+    }
 }

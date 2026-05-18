@@ -410,7 +410,35 @@ class InvoiceController extends Controller
                   ->whereDate('created_at', '<=', $request->date_to);
         }
 
-        $expenses = $query->latest('created_at')->paginate(20)->withQueryString();
+        if ($request->filled('deducted_from_drawer')) {
+            $query->where('deducted_from_drawer', $request->deducted_from_drawer);
+        }
+
+        // Fetch all matching expenses so we can decrypt and filter in-memory
+        $expensesCollection = $query->latest('created_at')->get();
+
+        if ($request->filled('search')) {
+            $searchVal = strtolower($request->search);
+            $expensesCollection = $expensesCollection->filter(function($exp) use ($searchVal) {
+                $desc = strtolower($exp->description ?? '');
+                $userName = strtolower($exp->user->name ?? '');
+                
+                return str_contains($desc, $searchVal) || str_contains($userName, $searchVal);
+            });
+        }
+
+        // Paginate the collection manually
+        $currentPage = \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPage();
+        $perPage = 20;
+        $currentItems = $expensesCollection->slice(($currentPage - 1) * $perPage, $perPage)->values();
+        
+        $expenses = new \Illuminate\Pagination\LengthAwarePaginator(
+            $currentItems,
+            $expensesCollection->count(),
+            $perPage,
+            $currentPage,
+            ['path' => \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPath(), 'query' => $request->query()]
+        );
 
         $canViewSales = $user->hasPermission('sales', 'view');
         $canViewPurchases = $user->hasPermission('purchases', 'view');

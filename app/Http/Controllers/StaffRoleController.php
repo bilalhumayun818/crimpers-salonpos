@@ -184,8 +184,19 @@ class StaffRoleController extends Controller
             return redirect()->back()->with('error', 'Cannot delete role which is assigned to active employees. Reassign them first.');
         }
 
-        // Delete any backend User accounts that are bound to this role directly
-        User::where('staff_role_id', $staffRole->id)->delete();
+        // Dissociate or delete User logins assigned to this role
+        $users = User::where('staff_role_id', $staffRole->id)->get();
+        foreach ($users as $user) {
+            try {
+                $user->delete();
+            } catch (\Exception $e) {
+                // If user has historical records (like cash reconciliations), dissociate instead of hard deleting
+                $user->update([
+                    'staff_role_id' => null,
+                    'role' => 'inactive'
+                ]);
+            }
+        }
 
         $staffRole->delete();
         return redirect()->route('staff-roles.index')->with('success', 'Role and its associated login successfully deleted.');

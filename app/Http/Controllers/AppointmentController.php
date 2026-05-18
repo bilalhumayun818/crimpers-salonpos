@@ -14,7 +14,7 @@ class AppointmentController extends Controller
     public function index()
     {
         // Hide appointments older than 1 day (24 hours) from active views
-        $appointments = Appointment::with(['staff', 'service'])
+        $appointments = Appointment::with(['staff', 'service', 'servicePackage'])
             ->where('appointment_date', '>=', Carbon::today()->subDay())
             ->latest()
             ->paginate(20);
@@ -38,12 +38,13 @@ class AppointmentController extends Controller
     {
         $staffMembers = Staff::available()->get()->filter(function($s) { return $s->is_on_shift; });
         $services = Service::all();
+        $packages = \App\Models\ServicePackage::all();
 
         $currentBranch = \App\Models\Branch::find(session('current_branch_id')) ?? \App\Models\Branch::first();
         $openingTime = $currentBranch ? \Carbon\Carbon::parse($currentBranch->opening_time)->format('H:i') : '09:00';
         $closingTime = $currentBranch ? \Carbon\Carbon::parse($currentBranch->closing_time)->format('H:i') : '21:00';
 
-        return view('appointments.create', compact('staffMembers', 'services', 'openingTime', 'closingTime'));
+        return view('appointments.create', compact('staffMembers', 'services', 'packages', 'openingTime', 'closingTime'));
     }
 
     public function store(Request $request)
@@ -54,7 +55,8 @@ class AppointmentController extends Controller
 
         $request->validate([
             'staff_id' => 'nullable|exists:staff,id',
-            'service_id' => 'required|exists:services,id',
+            'service_id' => 'required_without:service_package_id|nullable|exists:services,id',
+            'service_package_id' => 'required_without:service_id|nullable|exists:service_packages,id',
             'appointment_date' => 'required|date',
             'start_time' => 'required|date_format:H:i|after_or_equal:' . $openingTime . '|before:' . $closingTime,
             'end_time' => 'required|date_format:H:i|after:start_time|before_or_equal:' . $closingTime,
@@ -105,7 +107,8 @@ class AppointmentController extends Controller
             'customer_name'    => $request->customer_name,
             'customer_phone'   => $request->customer_phone,
             'customer_id'      => $customer->id,
-            'service_id'       => $request->service_id,
+            'service_id'       => $request->service_id ?: null,
+            'service_package_id' => $request->service_package_id ?: null,
             'staff_id'         => $request->staff_id ?: null,
             'appointment_date' => $request->appointment_date,
             'start_time'       => $request->start_time,
@@ -122,12 +125,13 @@ class AppointmentController extends Controller
     {
         $staffMembers = Staff::available()->get()->filter(function($s) { return $s->is_on_shift; });
         $services = Service::all();
+        $packages = \App\Models\ServicePackage::all();
 
         $currentBranch = \App\Models\Branch::find(session('current_branch_id')) ?? \App\Models\Branch::first();
         $openingTime = $currentBranch ? \Carbon\Carbon::parse($currentBranch->opening_time)->format('H:i') : '09:00';
         $closingTime = $currentBranch ? \Carbon\Carbon::parse($currentBranch->closing_time)->format('H:i') : '21:00';
 
-        return view('appointments.edit', compact('appointment', 'staffMembers', 'services', 'openingTime', 'closingTime'));
+        return view('appointments.edit', compact('appointment', 'staffMembers', 'services', 'packages', 'openingTime', 'closingTime'));
     }
 
     public function update(Request $request, Appointment $appointment)
@@ -138,7 +142,8 @@ class AppointmentController extends Controller
 
         $request->validate([
             'staff_id' => 'nullable|exists:staff,id',
-            'service_id' => 'required|exists:services,id',
+            'service_id' => 'required_without:service_package_id|nullable|exists:services,id',
+            'service_package_id' => 'required_without:service_id|nullable|exists:service_packages,id',
             'appointment_date' => 'required|date',
             'start_time' => 'required|date_format:H:i|after_or_equal:' . $openingTime . '|before:' . $closingTime,
             'end_time' => 'required|date_format:H:i|after:start_time|before_or_equal:' . $closingTime,
@@ -189,7 +194,8 @@ class AppointmentController extends Controller
             'customer_name'    => $request->customer_name,
             'customer_phone'   => $request->customer_phone,
             'customer_id'      => $customer->id,
-            'service_id'       => $request->service_id,
+            'service_id'       => $request->service_id ?: null,
+            'service_package_id' => $request->service_package_id ?: null,
             'staff_id'         => $request->staff_id ?: null,
             'appointment_date' => $request->appointment_date,
             'start_time'       => $request->start_time,
@@ -202,13 +208,20 @@ class AppointmentController extends Controller
 
     public function events()
     {
-        $appointments = Appointment::with(['staff', 'service'])->get();
+        $appointments = Appointment::with(['staff', 'service', 'servicePackage'])->get();
         $events = [];
 
         foreach ($appointments as $appointment) {
+            $displayName = 'Unassigned';
+            if ($appointment->service) {
+                $displayName = $appointment->service->name;
+            } elseif ($appointment->servicePackage) {
+                $displayName = $appointment->servicePackage->name;
+            }
+
             $events[] = [
                 'id' => $appointment->id,
-                'title' => $appointment->customer_name . ' - ' . $appointment->service->name,
+                'title' => $appointment->customer_name . ' - ' . $displayName,
                 'start' => $appointment->appointment_date->format('Y-m-d') . 'T' . $appointment->start_time->format('H:i:s'),
                 'end' => $appointment->appointment_date->format('Y-m-d') . 'T' . $appointment->end_time->format('H:i:s'),
                 'backgroundColor' => match($appointment->status) {
@@ -221,9 +234,9 @@ class AppointmentController extends Controller
                 },
                 'borderColor' => 'transparent',
                 'extendedProps' => [
-                    'staff' => $appointment->staff->name,
+                    'staff' => $appointment->staff ? $appointment->staff->name : 'Unassigned',
                     'staff_id' => $appointment->staff_id,
-                    'service' => $appointment->service->name,
+                    'service' => $displayName,
                     'customer' => $appointment->customer_name,
                     'status' => $appointment->status,
                 ]
@@ -303,9 +316,9 @@ class AppointmentController extends Controller
                 return [
                     'id'            => $a->id,
                     'customer_name' => $a->customer_name,
-                    'service'       => $a->service->name ?? '—',
-                    'staff'         => $a->staff->name ?? '—',
-                    'start_time'    => $a->start_time->format('g:i A'),
+                    'service'       => $a->service ? $a->service->name : '—',
+                    'staff'         => $a->staff ? $a->staff->name : '—',
+                    'start_time'    => $a->start_time ? $a->start_time->format('g:i A') : '—',
                 ];
             });
 

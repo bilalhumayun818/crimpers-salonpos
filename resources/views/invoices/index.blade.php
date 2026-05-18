@@ -4,6 +4,7 @@
     $title = match($tab) {
         'purchases' => 'Purchase History',
         'reconciliation' => 'Reconciliation History',
+        'expenses' => 'Expense History',
         default => 'Sales History'
     };
 @endphp
@@ -518,13 +519,29 @@
         <form method="GET" action="{{ route('invoices.index') }}">
             <input type="hidden" name="tab" value="expenses">
             <div class="filter-grid">
-                <div>
-                    <label class="f-label">Date From</label>
-                    <input type="date" name="date_from" value="{{ request('date_from') }}" class="f-input">
+                <div style="grid-column: span 2;">
+                    <label class="f-label">Search (Description or Staff Name)</label>
+                    <input type="text" name="search" value="{{ request('search') }}" class="f-input" placeholder="e.g. tea, ali, salary, rent...">
                 </div>
                 <div>
-                    <label class="f-label">Date To</label>
-                    <input type="date" name="date_to" value="{{ request('date_to') }}" class="f-input">
+                    <label class="f-label">Deducted from Drawer</label>
+                    <select name="deducted_from_drawer" class="f-input">
+                        <option value="">All Expenses</option>
+                        <option value="1" {{ request('deducted_from_drawer') === '1' ? 'selected' : '' }}>Yes</option>
+                        <option value="0" {{ request('deducted_from_drawer') === '0' ? 'selected' : '' }}>No</option>
+                    </select>
+                </div>
+                <div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <div>
+                            <label class="f-label">Date From</label>
+                            <input type="date" name="date_from" value="{{ request('date_from') }}" class="f-input">
+                        </div>
+                        <div>
+                            <label class="f-label">Date To</label>
+                            <input type="date" name="date_to" value="{{ request('date_to') }}" class="f-input">
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="filter-footer">

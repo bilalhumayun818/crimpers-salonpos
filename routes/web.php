@@ -68,6 +68,8 @@ Route::middleware(['auth'])->group(function () {
         return abort(403, 'Your account has no module permissions.');
     })->name('admin.index');
 
+    Route::get('/admin/chart-data', [AdminController::class, 'getChartData'])->name('admin.chart-data');
+
     Route::post('/branch/switch', [BranchController::class, 'switch'])->name('branch.switch');
     Route::put('/branches/{branch}/hours', [BranchController::class, 'updateHours'])->name('branches.update-hours')->middleware('permission:business,view');
 
@@ -203,6 +205,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/leaves/{leave}/reject', [StaffController::class, 'rejectLeave'])->name('staff.reject-leave');
         
         Route::get('/staff-salary-dashboard', [StaffController::class, 'salaryDashboard'])->name('staff.salary-dashboard');
+        Route::get('/staff/{staff}/salary-performance', [StaffController::class, 'salaryPerformance'])->name('staff.salary-performance');
+        Route::post('/staff/{staff}/pay-salary', [StaffController::class, 'paySalary'])->name('staff.pay-salary');
 
         // Staff HRMS Routes
         Route::get('/staff-hrms', [StaffHRMSController::class, 'index'])->name('staff.hrms');
@@ -242,6 +246,7 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/appointments/{appointment}', [AppointmentController::class, 'update'])->name('appointments.update');
     Route::delete('/appointments/{appointment}', [AppointmentController::class, 'destroy'])->name('appointments.destroy');
     Route::patch('/appointments/{appointment}/update-status', [AppointmentController::class, 'updateStatus'])->name('appointments.update-status');
+    Route::patch('/appointments/{appointment}/update-time', [AppointmentController::class, 'updateTime'])->name('appointments.update-time');
 
     // Promotions (Admin only)
     Route::middleware(['permission:admin,all'])->group(function() {

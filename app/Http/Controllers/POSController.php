@@ -95,6 +95,7 @@ class POSController extends Controller
                 'cash_received' => $request->cash_received,
                 'change_returned' => $request->change_returned,
                 'status' => 'paid',
+                'staff_id' => $request->staff_id,
             ]);
 
             foreach ($request->items as $item) {

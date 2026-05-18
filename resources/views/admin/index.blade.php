@@ -552,6 +552,64 @@ setInterval(pollDueAppointments, 60000);
     </div>
 </div>
 
+{{-- Sales vs Expenses Analysis Section --}}
+<div class="chart-panel" style="margin-top:24px;">
+    <div class="chart-head" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; border-bottom:1px solid #f1f5f9; padding-bottom:16px; margin-bottom:20px;">
+        <div>
+            <h3 style="font-size:1.15rem; font-weight:800; color:#1e293b; margin:0; display:flex; align-items:center; gap:8px;">
+                <svg width="20" height="20" fill="none" stroke="#ef4444" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h-2a2 2 0 00-2-2z"/></svg>
+                Sales vs Expenses Analysis
+            </h3>
+            <p style="font-size:.8rem; color:#94a3b8; margin:2px 0 0;">Compare revenue against operational expenses and net profits</p>
+        </div>
+        
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+            {{-- Interval Toggle --}}
+            <div class="chart-tabs" id="comp-interval-tabs" style="display:flex; background:#f8fafc; padding:3px; border-radius:10px; border:1px solid #e2e8f0; height:36px; align-items:center;">
+                <button type="button" class="chart-tab active" style="padding:6px 12px; font-size:0.75rem;" onclick="setCompInterval('daily', this)">Daily</button>
+                <button type="button" class="chart-tab" style="padding:6px 12px; font-size:0.75rem;" onclick="setCompInterval('weekly', this)">Weekly</button>
+                <button type="button" class="chart-tab" style="padding:6px 12px; font-size:0.75rem;" onclick="setCompInterval('monthly', this)">Monthly</button>
+                <button type="button" class="chart-tab" style="padding:6px 12px; font-size:0.75rem;" onclick="setCompInterval('custom', this)">Custom</button>
+            </div>
+
+            {{-- Custom Date Inputs (hidden initially) --}}
+            <div id="comp-custom-dates" style="display:none; align-items:center; gap:6px;">
+                <input type="date" id="comp-date-from" class="f-input" style="padding:6px 10px; font-size:0.75rem; border-radius:8px; border:1px solid #e2e8f0; width:125px; height:36px;" onchange="fetchCompChartData()">
+                <span style="font-size:0.75rem; color:#94a3b8;">to</span>
+                <input type="date" id="comp-date-to" class="f-input" style="padding:6px 10px; font-size:0.75rem; border-radius:8px; border:1px solid #e2e8f0; width:125px; height:36px;" onchange="fetchCompChartData()">
+            </div>
+
+            {{-- Drawer Selector --}}
+            <div>
+                <select id="comp-drawer-mode" class="f-input" style="padding:6px 28px 6px 10px; font-size:0.75rem; border-radius:8px; border:1px solid #e2e8f0; height:36px; background:#fff; font-weight:700; color:#475569;" onchange="fetchCompChartData()">
+                    <option value="all">All Expenses</option>
+                    <option value="drawer">Only Drawer Expenses</option>
+                    <option value="non_drawer">Non Drawer Expenses</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div style="position:relative; height:340px;">
+        <canvas id="compChart"></canvas>
+    </div>
+
+    <div style="margin-top:20px; padding-top:16px; border-top:1px solid #f1f5f9; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+        <div style="display:flex; gap:16px;">
+            <span style="font-size:0.75rem; font-weight:700; color:#c9a800; display:inline-flex; align-items:center; gap:5px;">
+                <span style="width:10px; height:10px; border-radius:50%; background:#c9a800; display:inline-block;"></span> Sales Revenue
+            </span>
+            <span style="font-size:0.75rem; font-weight:700; color:#ef4444; display:inline-flex; align-items:center; gap:5px;">
+                <span style="width:10px; height:10px; border-radius:50%; background:#ef4444; display:inline-block;"></span> Operational Expenses
+            </span>
+            <span style="font-size:0.75rem; font-weight:700; color:#10b981; display:inline-flex; align-items:center; gap:5px;">
+                <span style="width:10px; height:10px; border-radius:50%; background:#10b981; display:inline-block;"></span> Net Profit
+            </span>
+        </div>
+        <div style="font-size:.72rem; color:#94a3b8; font-weight:600;">Data updates automatically on filter changes</div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 const dailyData = @json($dailySales);
@@ -559,6 +617,8 @@ const weeklyData = @json($weeklySales);
 const monthlyData = @json($monthlySales);
 
 let currentChart = null;
+let compChartInstance = null;
+let currentCompInterval = 'daily';
 
 function initChart() {
     const ctx = document.getElementById('salesChart').getContext('2d');
@@ -654,6 +714,142 @@ function updatePeakInfo(data) {
     document.getElementById('peak-label').textContent = max.label;
 }
 
-document.addEventListener('DOMContentLoaded', initChart);
+function initCompChart() {
+    const ctx = document.getElementById('compChart').getContext('2d');
+    compChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Sales Revenue',
+                    data: [],
+                    borderColor: '#c9a800',
+                    borderWidth: 3,
+                    backgroundColor: 'rgba(247, 223, 121, 0.03)',
+                    fill: true,
+                    tension: 0.35,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#c9a800',
+                    pointBorderWidth: 2,
+                    pointRadius: 4
+                },
+                {
+                    label: 'Operational Expenses',
+                    data: [],
+                    borderColor: '#ef4444',
+                    borderWidth: 3,
+                    backgroundColor: 'rgba(239, 68, 68, 0.02)',
+                    fill: true,
+                    tension: 0.35,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#ef4444',
+                    pointBorderWidth: 2,
+                    pointRadius: 4
+                },
+                {
+                    label: 'Net Profit',
+                    data: [],
+                    borderColor: '#10b981',
+                    borderWidth: 2.5,
+                    backgroundColor: 'rgba(16, 185, 129, 0.02)',
+                    fill: true,
+                    tension: 0.35,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#10b981',
+                    pointBorderWidth: 1.5,
+                    pointRadius: 3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1e293b',
+                    titleFont: { size: 12, weight: 'bold' },
+                    bodyFont: { size: 11 },
+                    padding: 12,
+                    cornerRadius: 10,
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': PKR ' + context.parsed.y.toLocaleString();
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: '#f1f5f9', drawBorder: false },
+                    ticks: {
+                        font: { size: 10, weight: '600' },
+                        color: '#94a3b8',
+                        callback: value => 'PKR ' + value.toLocaleString()
+                    }
+                },
+                x: {
+                    grid: { display: false, drawBorder: false },
+                    ticks: {
+                        font: { size: 10, weight: '700' },
+                        color: '#64748b'
+                    }
+                }
+            }
+        }
+    });
+
+    fetchCompChartData();
+}
+
+function setCompInterval(interval, btn) {
+    currentCompInterval = interval;
+    document.querySelectorAll('#comp-interval-tabs .chart-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+
+    const customDatesEl = document.getElementById('comp-custom-dates');
+    if (interval === 'custom') {
+        customDatesEl.style.display = 'inline-flex';
+        const today = new Date().toISOString().split('T')[0];
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        document.getElementById('comp-date-from').value = thirtyDaysAgo;
+        document.getElementById('comp-date-to').value = today;
+    } else {
+        customDatesEl.style.display = 'none';
+    }
+
+    fetchCompChartData();
+}
+
+function fetchCompChartData() {
+    if (!compChartInstance) return;
+
+    const drawerMode = document.getElementById('comp-drawer-mode').value;
+    const dateFrom = document.getElementById('comp-date-from').value;
+    const dateTo = document.getElementById('comp-date-to').value;
+
+    let url = `/admin/chart-data?type=${currentCompInterval}&drawer_mode=${drawerMode}`;
+    if (currentCompInterval === 'custom' && dateFrom && dateTo) {
+        url += `&date_from=${dateFrom}&date_to=${dateTo}`;
+    }
+
+    fetch(url)
+        .then(res => res.json())
+        .then(data => {
+            compChartInstance.data.labels = data.labels;
+            compChartInstance.data.datasets[0].data = data.sales;
+            compChartInstance.data.datasets[1].data = data.expenses;
+            compChartInstance.data.datasets[2].data = data.profit;
+            compChartInstance.update();
+        })
+        .catch(err => console.warn('Failed to load comparison chart data:', err));
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initChart();
+    initCompChart();
+});
 </script>
 @endsection

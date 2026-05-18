@@ -31,6 +31,7 @@ class Staff extends Model
         'rating',
         'rating_total',
         'rating_count',
+        'last_paid_at',
     ];
 
     protected $casts = [
@@ -47,7 +48,25 @@ class Staff extends Model
         'rating' => 'integer',
         'rating_total' => 'integer',
         'rating_count' => 'integer',
+        'last_paid_at' => 'datetime',
     ];
+
+    public function getDaysSinceLastPaymentAttribute()
+    {
+        $startDate = $this->last_paid_at ?? $this->hiring_date ?? $this->created_at;
+        if (!$startDate) {
+            return 0;
+        }
+        try {
+            $start = \Carbon\Carbon::parse($startDate);
+            if ($start->isFuture()) {
+                return 0;
+            }
+            return (int) $start->diffInDays(now());
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
 
     public function getIsOnShiftAttribute()
     {

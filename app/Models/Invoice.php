@@ -15,8 +15,13 @@ class Invoice extends Model
     protected $fillable = [
         'invoice_no', 'user_id', 'customer_id', 'customer_name', 'total_amount', 'tax', 
         'discount', 'payable_amount', 'payment_method', 'status',
-        'cash_received', 'change_returned'
+        'cash_received', 'change_returned', 'staff_id'
     ];
+
+    public function staff()
+    {
+        return $this->belongsTo(Staff::class);
+    }
 
     public function user()
     {

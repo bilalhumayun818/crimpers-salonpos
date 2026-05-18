@@ -58,7 +58,7 @@
         </span>
         <span class="action-btns">
             <a href="{{ route('products.show', $product) }}" class="btn-view">View</a>
-            <a href="{{ route('purchases.create') }}?product={{ $product->id }}" class="btn-restock">Restock</a>
+            <a href="{{ route('products.adjust-stock.form', $product) }}" class="btn-restock" style="background:#f59e0b;">Adjust Stock</a>
         </span>
     </div>
     @endforeach

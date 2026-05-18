@@ -125,4 +125,140 @@ class AdminController extends Controller
             'dailySales', 'weeklySales', 'monthlySales'
         ));
     }
+
+    public function getChartData(Request $request)
+    {
+        $type = $request->get('type', 'daily'); // daily, weekly, monthly, custom
+        $drawerMode = $request->get('drawer_mode', 'all'); // all, drawer, non_drawer
+        $dateFrom = $request->get('date_from');
+        $dateTo = $request->get('date_to');
+
+        // Build queries
+        $salesQuery = Invoice::query();
+        $expenseQuery = \App\Models\Expense::query();
+
+        // Filter expense drawer mode
+        if ($drawerMode === 'drawer') {
+            $expenseQuery->where('deducted_from_drawer', true);
+        } elseif ($drawerMode === 'non_drawer') {
+            $expenseQuery->where('deducted_from_drawer', false);
+        }
+
+        // Define intervals
+        $labels = [];
+        $salesData = [];
+        $expenseData = [];
+        $profitData = [];
+
+        if ($type === 'daily') {
+            // Last 7 days
+            for ($i = 6; $i >= 0; $i--) {
+                $date = Carbon::today()->subDays($i);
+                $labels[] = $date->format('D (M d)');
+                
+                $sales = (float) (clone $salesQuery)->whereDate('created_at', $date)->sum('payable_amount');
+                $expenses = (float) (clone $expenseQuery)->whereDate('created_at', $date)->sum('amount');
+                
+                $salesData[] = $sales;
+                $expenseData[] = $expenses;
+                $profitData[] = $sales - $expenses;
+            }
+        } elseif ($type === 'weekly') {
+            // Last 4 weeks
+            for ($i = 3; $i >= 0; $i--) {
+                $start = Carbon::now()->subWeeks($i)->startOfWeek();
+                $end = Carbon::now()->subWeeks($i)->endOfWeek();
+                $labels[] = 'Week ' . ($i == 0 ? '(Current)' : '-' . $i);
+
+                $sales = (float) (clone $salesQuery)->whereBetween('created_at', [$start, $end])->sum('payable_amount');
+                $expenses = (float) (clone $expenseQuery)->whereBetween('created_at', [$start, $end])->sum('amount');
+
+                $salesData[] = $sales;
+                $expenseData[] = $expenses;
+                $profitData[] = $sales - $expenses;
+            }
+        } elseif ($type === 'monthly') {
+            // 12 Months of the current year
+            for ($i = 1; $i <= 12; $i++) {
+                $labels[] = Carbon::create()->month($i)->format('M');
+
+                $sales = (float) (clone $salesQuery)->whereYear('created_at', Carbon::now()->year)->whereMonth('created_at', $i)->sum('payable_amount');
+                $expenses = (float) (clone $expenseQuery)->whereYear('created_at', Carbon::now()->year)->whereMonth('created_at', $i)->sum('amount');
+
+                $salesData[] = $sales;
+                $expenseData[] = $expenses;
+                $profitData[] = $sales - $expenses;
+            }
+        } elseif ($type === 'custom' && $dateFrom && $dateTo) {
+            // Custom Date Range
+            $start = Carbon::parse($dateFrom)->startOfDay();
+            $end = Carbon::parse($dateTo)->endOfDay();
+            
+            $diffDays = $start->diffInDays($end);
+            
+            // Fast aggregate query: Fetch all records in one single query!
+            $allSales = (clone $salesQuery)->whereBetween('created_at', [$start, $end])
+                ->selectRaw('DATE(created_at) as date, SUM(payable_amount) as total')
+                ->groupBy('date')
+                ->pluck('total', 'date');
+
+            $allExpenses = (clone $expenseQuery)->whereBetween('created_at', [$start, $end])
+                ->selectRaw('DATE(created_at) as date, SUM(amount) as total')
+                ->groupBy('date')
+                ->pluck('total', 'date');
+
+            if ($diffDays > 45) {
+                // Group by week
+                $current = clone $start;
+                while ($current->lte($end)) {
+                    $wStart = clone $current;
+                    $wEnd = (clone $current)->endOfWeek();
+                    if ($wEnd->gt($end)) {
+                        $wEnd = clone $end;
+                    }
+                    $labels[] = $wStart->format('M d') . ' - ' . $wEnd->format('M d');
+
+                    $salesSum = 0;
+                    $expenseSum = 0;
+                    
+                    $tempDate = clone $wStart;
+                    while ($tempDate->lte($wEnd)) {
+                        $dateStr = $tempDate->format('Y-m-d');
+                        $salesSum += $allSales[$dateStr] ?? 0;
+                        $expenseSum += $allExpenses[$dateStr] ?? 0;
+                        $tempDate->addDay();
+                    }
+
+                    $salesData[] = (float) $salesSum;
+                    $expenseData[] = (float) $expenseSum;
+                    $profitData[] = (float) ($salesSum - $expenseSum);
+
+                    $current->addWeek();
+                }
+            } else {
+                // Group by day
+                $current = clone $start;
+                while ($current->lte($end)) {
+                    $dateStr = $current->format('Y-m-d');
+                    $labels[] = $current->format('M d');
+
+                    $sales = (float) ($allSales[$dateStr] ?? 0);
+                    $expenses = (float) ($allExpenses[$dateStr] ?? 0);
+
+                    $salesData[] = $sales;
+                    $expenseData[] = $expenses;
+                    $profitData[] = $sales - $expenses;
+
+                    $current->addDay();
+                }
+            }
+        }
+
+        return response()->json([
+            'labels' => $labels,
+            'sales' => $salesData,
+            'expenses' => $expenseData,
+            'profit' => $profitData
+        ]);
+    }
 }

@@ -241,8 +241,8 @@
     }
 
     .badge-hot {
-      background: #ef4444;
-      color: #fff;
+      background: #F7DF79;
+      color: #1e293b;
     }
 
     .badge-deal {
@@ -732,7 +732,7 @@
               data-levels-enabled="{{ $service->pricing_levels_enabled ? '1' : '0' }}"
               data-levels="{{ json_encode($service->pricing_levels ?? ['junior' => $service->price, 'senior' => $service->price, 'master' => $service->price]) }}"
               data-barcode="">
-              @if($service->is_popular)<span class="item-badge badge-hot">Hot</span>@endif
+              @if($service->is_popular)<span class="item-badge badge-hot">Popular</span>@endif
               <div class="item-icon">
                 @if($service->image)
                   <img src="{{ asset('storage/' . $service->image) }}"
