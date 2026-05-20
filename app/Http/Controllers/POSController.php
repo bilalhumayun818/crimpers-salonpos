@@ -238,40 +238,45 @@ class POSController extends Controller
         $q = trim($request->input('q', ''));
         $name = trim($request->input('name', ''));
         $phone = trim($request->input('phone', ''));
+        $id = trim($request->input('customer_id', ''));
 
-        if (empty($q) && empty($name) && empty($phone)) {
+        if (empty($q) && empty($name) && empty($phone) && empty($id)) {
             return response()->json(['success' => false, 'message' => 'Query is empty']);
         }
 
-        // ⚠️  CRITICAL: phone & name are ENCRYPTED in the DB.
-        // SQL LIKE queries search against ciphertext and NEVER match.
-        // We MUST load all customers and filter after Laravel decrypts them.
-        $cleanInputPhone = preg_replace('/[^0-9]/', '', $phone ?: $q);
-        $nameQuery = strtolower($name ?: $q);
+        if (!empty($id)) {
+            $customer = Customer::find($id);
+        } else {
+            // ⚠️  CRITICAL: phone & name are ENCRYPTED in the DB.
+            // SQL LIKE queries search against ciphertext and NEVER match.
+            // We MUST load all customers and filter after Laravel decrypts them.
+            $cleanInputPhone = preg_replace('/[^0-9]/', '', $phone ?: $q);
+            $nameQuery = strtolower($name ?: $q);
 
-        $customer = Customer::all()->first(function ($cust) use ($cleanInputPhone, $nameQuery) {
-            $decryptedPhone = strtolower((string) ($cust->phone ?? ''));
-            $decryptedName = strtolower((string) ($cust->name ?? ''));
-            $cleanCustPhone = preg_replace('/[^0-9]/', '', $decryptedPhone);
+            $customer = Customer::all()->first(function ($cust) use ($cleanInputPhone, $nameQuery) {
+                $decryptedPhone = strtolower((string) ($cust->phone ?? ''));
+                $decryptedName = strtolower((string) ($cust->name ?? ''));
+                $cleanCustPhone = preg_replace('/[^0-9]/', '', $decryptedPhone);
 
-            // Match by phone digits
-            if (
-                $cleanInputPhone && $cleanCustPhone &&
-                str_contains($cleanCustPhone, $cleanInputPhone)
-            ) {
-                return true;
-            }
+                // Match by phone digits
+                if (
+                    $cleanInputPhone && $cleanCustPhone &&
+                    str_contains($cleanCustPhone, $cleanInputPhone)
+                ) {
+                    return true;
+                }
 
-            // Match by name (partial, case-insensitive)
-            if (
-                $nameQuery && $nameQuery !== 'walk-in customer' &&
-                str_contains($decryptedName, $nameQuery)
-            ) {
-                return true;
-            }
+                // Match by name (partial, case-insensitive)
+                if (
+                    $nameQuery && $nameQuery !== 'walk-in customer' &&
+                    str_contains($decryptedName, $nameQuery)
+                ) {
+                    return true;
+                }
 
-            return false;
-        });
+                return false;
+            });
+        }
 
         if (!$customer) {
             return response()->json(['success' => false, 'message' => 'Customer not found']);

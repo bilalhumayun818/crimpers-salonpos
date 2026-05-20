@@ -936,6 +936,53 @@
       const quickMembership = document.getElementById('cust-membership');
       const lookupBtn = document.getElementById('lookup-cust-btn');
 
+      // Load existing checkout session if returning from payment screen
+      const savedSessionRaw = localStorage.getItem('pos_checkout_session');
+      if (savedSessionRaw) {
+        try {
+          const savedSession = JSON.parse(savedSessionRaw);
+          if (savedSession && savedSession.cart && savedSession.cart.length > 0) {
+            cart = savedSession.cart;
+            custNameInput.value = savedSession.customerName || '';
+            custPhoneInput.value = savedSession.customerPhone || '';
+            if (savedSession.customer_id) {
+              activeCustomer = { id: savedSession.customer_id, name: savedSession.customerName, phone: savedSession.customerPhone };
+              lookupCustomerQuietly(savedSession.customer_id);
+            }
+            setTimeout(() => {
+              renderCart();
+            }, 100);
+          }
+        } catch (e) {
+          console.error("Failed to restore checkout session:", e);
+        }
+      }
+
+      function lookupCustomerQuietly(customerId) {
+        let searchUrl = window.location.pathname;
+        if (!searchUrl.endsWith('/')) searchUrl += '/';
+        searchUrl += 'search-customer';
+
+        fetch(`${searchUrl}?customer_id=${customerId}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              activeCustomer = data.customer;
+              quickMembership.textContent = data.customer.membership_type || 'Standard';
+              quickSpent.textContent = `PKR ${parseFloat(data.customer.total_spent || 0).toLocaleString()}`;
+              quickLastVisit.textContent = data.customer.last_visit ? `Last Visit: ${data.customer.last_visit}` : 'First Visit';
+              
+              const detailLink = document.getElementById('cust-detail-link');
+              if (detailLink) {
+                  let baseUrl = "{{ url('customers') }}";
+                  if(baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+                  detailLink.href = `${baseUrl}/${data.customer.id}`;
+              }
+              quickStatsWrap.style.display = 'block';
+            }
+          });
+      }
+
       // ── Customer Lookup ───────────────────────────────────────────
       function lookupCustomer() {
         const name = custNameInput.value.trim();
