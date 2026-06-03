@@ -101,8 +101,16 @@
             gap: 16px;
         }
 
+        .f-grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+        }
+
         @media(max-width:600px) {
-            .f-grid-2 {
+
+            .f-grid-2,
+            .f-grid-3 {
                 grid-template-columns: 1fr;
             }
         }
@@ -516,6 +524,35 @@
                         <input type="date" name="hiring_date"
                             value="{{ old('hiring_date', $staff->hiring_date->format('Y-m-d')) }}" class="f-input">
                     </div>
+                </div>
+            </div>
+
+            {{-- Shift Settings --}}
+            <div class="form-card">
+                <div class="form-card-head">
+                    <div class="form-card-head-icon">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                    </div>
+                    <span class="form-card-head-title">Shift Settings</span>
+                </div>
+                <div class="form-card-body">
+                    <div class="f-grid-2">
+                        <div class="f-group">
+                            <label class="f-label">Shift Start <span>*</span></label>
+                            <input type="time" name="shift_start" value="{{ old('shift_start', $staff->shift_start) }}" required class="f-input">
+                        </div>
+                        <div class="f-group">
+                            <label class="f-label">Shift End <span>*</span></label>
+                            <input type="time" name="shift_end" value="{{ old('shift_end', $staff->shift_end) }}" required class="f-input">
+                        </div>
+                    </div>
+                    <p style="margin-top:10px; font-size:.78rem; color:#94a3b8;">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        These define the employee&apos;s default working hours used for attendance tracking.
+                    </p>
                 </div>
             </div>
 

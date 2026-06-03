@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\ProductUsage;
 use App\Models\Service;
 use App\Models\Staff;
+use App\Models\StaffAttendance;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -128,5 +129,259 @@ class ReportController extends Controller
             'grossProfit',
             'profitMargin'
         ));
+    }
+
+    public function posReport(\Illuminate\Http\Request $request)
+    {
+        $dateFrom = $request->get('date_from', Carbon::today()->format('Y-m-d'));
+        $dateTo = $request->get('date_to', Carbon::today()->format('Y-m-d'));
+
+        $start = Carbon::parse($dateFrom)->startOfDay();
+        $end = Carbon::parse($dateTo)->endOfDay();
+
+        $invoices = Invoice::with(['user', 'staff', 'customer', 'items.itemizable'])
+            ->whereBetween('created_at', [$start, $end])
+            ->latest()
+            ->get();
+
+        $totalSales = $invoices->sum('payable_amount');
+        $totalTax = $invoices->sum('tax');
+        $totalDiscount = $invoices->sum('discount');
+        
+        $paymentMethods = [
+            'cash' => $invoices->where('payment_method', 'cash')->sum('payable_amount'),
+            'card' => $invoices->where('payment_method', 'card')->sum('payable_amount'),
+            'jazzcash' => $invoices->where('payment_method', 'jazzcash')->sum('payable_amount'),
+            'easypaisa' => $invoices->where('payment_method', 'easypaisa')->sum('payable_amount'),
+            'multiple' => $invoices->where('payment_method', 'multiple')->sum('payable_amount'),
+        ];
+
+        return view('reports.pos', compact(
+            'invoices', 'totalSales', 'totalTax', 'totalDiscount', 
+            'paymentMethods', 'dateFrom', 'dateTo'
+        ));
+    }
+
+    public function exportPosReport(\Illuminate\Http\Request $request)
+    {
+        $dateFrom = $request->get('date_from', Carbon::today()->format('Y-m-d'));
+        $dateTo = $request->get('date_to', Carbon::today()->format('Y-m-d'));
+        $format = $request->get('format', 'csv'); // csv or xls
+
+        $start = Carbon::parse($dateFrom)->startOfDay();
+        $end = Carbon::parse($dateTo)->endOfDay();
+
+        $invoices = Invoice::with(['user', 'staff', 'customer', 'items.itemizable'])
+            ->whereBetween('created_at', [$start, $end])
+            ->latest()
+            ->get();
+
+        $filename = 'pos-report-' . now()->format('Y-m-d') . '.' . $format;
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $callback = function() use ($invoices) {
+            $file = fopen('php://output', 'w');
+
+            // CSV headers
+            fputcsv($file, [
+                'Invoice #',
+                'Date',
+                'Customer',
+                'Staff',
+                'Payment Method',
+                'Amount',
+                'Tax',
+                'Discount'
+            ]);
+
+            // CSV data
+            foreach ($invoices as $invoice) {
+                fputcsv($file, [
+                    $invoice->invoice_no,
+                    $invoice->created_at->format('Y-m-d H:i:s'),
+                    $invoice->customer_name ?? ($invoice->customer->name ?? 'Walk-in'),
+                    $invoice->staff->name ?? 'N/A',
+                    $invoice->payment_method,
+                    $invoice->payable_amount,
+                    $invoice->tax,
+                    $invoice->discount
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function staffReport(\Illuminate\Http\Request $request)
+    {
+        $search   = $request->get('search', '');
+        $roleId   = $request->get('role_id', '');
+        $status   = $request->get('status', '');
+
+        $query = Staff::with('role');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('phone', 'like', '%' . $search . '%')
+                  ->orWhere('email', 'like', '%' . $search . '%');
+            });
+        }
+
+        if ($roleId !== '') {
+            $query->where('staff_role_id', $roleId);
+        }
+
+        if ($status !== '') {
+            $query->where('status', (bool) $status);
+        }
+
+        $staffs = $query->get();
+        $roles  = \App\Models\StaffRole::orderBy('name')->get();
+
+        return view('reports.staff', compact('staffs', 'roles', 'search', 'roleId', 'status'));
+    }
+
+    public function exportStaffReport(\Illuminate\Http\Request $request)
+    {
+        $format = $request->get('format', 'csv');
+        $staffs = Staff::with('role')->get();
+        
+        $filename = 'staff-report-' . now()->format('Y-m-d') . '.' . $format;
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $callback = function() use ($staffs) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['Name', 'Role', 'Email', 'Phone', 'Status', 'Hiring Date']);
+            
+            foreach ($staffs as $staff) {
+                fputcsv($file, [
+                    $staff->name,
+                    $staff->role->name ?? 'N/A',
+                    $staff->email,
+                    $staff->phone,
+                    $staff->status ? 'Active' : 'Inactive',
+                    $staff->hiring_date ? $staff->hiring_date->format('Y-m-d') : 'N/A'
+                ]);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function attendanceReport(\Illuminate\Http\Request $request)
+    {
+        $dateFrom   = $request->get('date_from', Carbon::today()->startOfMonth()->format('Y-m-d'));
+        $dateTo     = $request->get('date_to', Carbon::today()->format('Y-m-d'));
+        $staffSearch = $request->get('staff_search', '');
+        $statusFilter = $request->get('status_filter', '');
+
+        $query = StaffAttendance::with('staff')
+            ->whereBetween('attendance_date', [$dateFrom, $dateTo]);
+
+        if ($staffSearch) {
+            $query->whereHas('staff', function ($q) use ($staffSearch) {
+                $q->where('name', 'like', '%' . $staffSearch . '%');
+            });
+        }
+
+        if ($statusFilter !== '') {
+            $query->where('status', $statusFilter);
+        }
+
+        $attendances = $query->orderBy('attendance_date', 'desc')->get();
+
+        return view('reports.attendance', compact('attendances', 'dateFrom', 'dateTo', 'staffSearch', 'statusFilter'));
+    }
+
+    public function exportAttendanceReport(\Illuminate\Http\Request $request)
+    {
+        $dateFrom = $request->get('date_from', Carbon::today()->startOfMonth()->format('Y-m-d'));
+        $dateTo = $request->get('date_to', Carbon::today()->format('Y-m-d'));
+        $format = $request->get('format', 'csv');
+
+        $attendances = StaffAttendance::with('staff')
+            ->whereBetween('attendance_date', [$dateFrom, $dateTo])
+            ->orderBy('attendance_date', 'desc')
+            ->get();
+
+        $filename = 'attendance-report-' . now()->format('Y-m-d') . '.' . $format;
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $callback = function() use ($attendances) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['Date', 'Staff', 'Status', 'Check In', 'Check Out', 'Hours Worked']);
+            
+            foreach ($attendances as $attendance) {
+                fputcsv($file, [
+                    $attendance->attendance_date ? $attendance->attendance_date->format('Y-m-d') : '',
+                    $attendance->staff->name ?? 'N/A',
+                    ucfirst($attendance->status),
+                    $attendance->check_in_time ? $attendance->check_in_time->format('h:i A') : '',
+                    $attendance->check_out_time ? $attendance->check_out_time->format('h:i A') : '',
+                    $attendance->hours_worked
+                ]);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function salaryReport(\Illuminate\Http\Request $request)
+    {
+        $search = $request->get('search', '');
+
+        $query = Staff::where('status', true);
+
+        if ($search) {
+            $query->where('name', 'like', '%' . $search . '%');
+        }
+
+        $staffs = $query->get();
+
+        return view('reports.salary', compact('staffs', 'search'));
+    }
+
+    public function exportSalaryReport(\Illuminate\Http\Request $request)
+    {
+        $format = $request->get('format', 'csv');
+        $staffs = Staff::where('status', true)->get();
+        
+        $filename = 'salary-report-' . now()->format('Y-m-d') . '.' . $format;
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $callback = function() use ($staffs) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['Staff', 'Base Salary', 'Hourly Rate', 'Total Commission', 'Last Paid At']);
+            
+            foreach ($staffs as $staff) {
+                fputcsv($file, [
+                    $staff->name,
+                    $staff->base_salary,
+                    $staff->hourly_rate,
+                    $staff->total_earned_commission,
+                    $staff->last_paid_at ? $staff->last_paid_at->format('Y-m-d') : 'Never'
+                ]);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }

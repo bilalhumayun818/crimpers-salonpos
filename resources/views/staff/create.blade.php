@@ -439,10 +439,20 @@
                     <span class="form-card-head-title">Employment Details</span>
                 </div>
                 <div class="form-card-body">
-                    <div class="f-group">
-                        <label class="f-label">Joining Date</label>
-                        <input type="date" name="hiring_date" value="{{ old('hiring_date', date('Y-m-d')) }}"
-                            class="f-input">
+                    <div class="f-grid-3">
+                        <div class="f-group">
+                            <label class="f-label">Joining Date</label>
+                            <input type="date" name="hiring_date" value="{{ old('hiring_date', date('Y-m-d')) }}"
+                                class="f-input">
+                        </div>
+                        <div class="f-group">
+                            <label class="f-label">Shift Start <span>*</span></label>
+                            <input type="time" name="shift_start" value="{{ old('shift_start') }}" required class="f-input">
+                        </div>
+                        <div class="f-group">
+                            <label class="f-label">Shift End <span>*</span></label>
+                            <input type="time" name="shift_end" value="{{ old('shift_end') }}" required class="f-input">
+                        </div>
                     </div>
                 </div>
             </div>

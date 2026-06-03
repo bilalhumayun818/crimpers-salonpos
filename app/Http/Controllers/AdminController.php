@@ -261,4 +261,19 @@ class AdminController extends Controller
             'profit' => $profitData
         ]);
     }
+
+    public function branchSelect()
+    {
+        $branches = \App\Models\Branch::where('is_active', true)->get();
+        return view('admin.branch_select', compact('branches'));
+    }
+
+    public function branchSwitchFromSelect(Request $request)
+    {
+        $branchId = $request->input('branch_id');
+        if (\App\Models\Branch::where('id', $branchId)->exists()) {
+            session(['current_branch_id' => $branchId]);
+        }
+        return redirect()->route('admin.index')->with('success', 'Branch selected successfully.');
+    }
 }

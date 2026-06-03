@@ -272,7 +272,26 @@
         </div>
         @endif
 
-
+        @if(auth()->user()->hasPermission('reports', 'view'))
+        <div class="nav-group">
+            <div class="sidebar-link {{ request()->routeIs('reports.*') ? 'active' : '' }}">
+                <span class="sidebar-icon"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg></span>
+                <span class="link-text">Reports</span>
+                <svg class="section-chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+            <div class="sub-menu">
+                <a href="{{ route('reports.index') }}" class="sub-link {{ request()->routeIs('reports.index') ? 'active-sub' : '' }}">Business Intelligence</a>
+                <a href="{{ route('reports.pos') }}" class="sub-link {{ request()->routeIs('reports.pos') ? 'active-sub' : '' }}">POS Sales Report</a>
+                <a href="{{ route('reports.staff') }}" class="sub-link {{ request()->routeIs('reports.staff') ? 'active-sub' : '' }}">Staff Details Report</a>
+                <a href="{{ route('reports.attendance') }}" class="sub-link {{ request()->routeIs('reports.attendance') ? 'active-sub' : '' }}">Staff Attendance Report</a>
+                <a href="{{ route('reports.salary') }}" class="sub-link {{ request()->routeIs('reports.salary') ? 'active-sub' : '' }}">Staff Salary Report</a>
+                @if(auth()->user()->hasPermission('inventory', 'view'))
+                <a href="{{ route('inventory.stock-report') }}" class="sub-link {{ request()->routeIs('inventory.stock-report') ? 'active-sub' : '' }}">Stock Report</a>
+                <a href="{{ route('inventory.usage-report') }}" class="sub-link {{ request()->routeIs('inventory.usage-report') ? 'active-sub' : '' }}">Usage Report</a>
+                @endif
+            </div>
+        </div>
+        @endif
 
         @if(auth()->user()->hasPermission('admin', 'all') || auth()->user()->hasPermission('business', 'view'))
         <div class="nav-group">

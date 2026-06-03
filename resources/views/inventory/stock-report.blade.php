@@ -24,12 +24,64 @@
 .product-name{font-weight:600;color:#1e293b;}
 .sku{font-size:.75rem;color:#94a3b8;}
 .price{font-weight:600;color:#16a34a;}
+
+.btn-export-csv {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.25);
+}
+.btn-export-csv:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(59, 130, 246, 0.4);
+    color: #ffffff;
+}
+
+.btn-export-xls {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.25);
+}
+.btn-export-xls:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(16, 185, 129, 0.4);
+    color: #ffffff;
+}
 </style>
 
 <div class="page-header">
     <h2>Inventory Stock Report</h2>
-    <div style="display:flex;gap:8px;">
-        <button onclick="window.print()" class="btn-view" style="padding:8px 16px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:10px; cursor:pointer; font-weight:600;">Print Report</button>
+    <div style="display:flex;gap:12px;">
+        <a href="{{ route('inventory.stock-report.export', request()->all() + ['format' => 'csv']) }}" class="btn-export-csv">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+            Export CSV
+        </a>
+        <a href="{{ route('inventory.stock-report.export', request()->all() + ['format' => 'xls']) }}" class="btn-export-xls">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/><path d="M14 2v6h6M8 13h8M8 17h8M10 9h4"/></svg>
+            Export XXL
+        </a>
+
     </div>
 </div>
 

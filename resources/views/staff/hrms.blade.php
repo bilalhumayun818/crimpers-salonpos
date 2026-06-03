@@ -48,10 +48,7 @@
             <div>
                 <div class="staff-name">{{ $s->name }}</div>
                 <div class="staff-role">
-                    {{ $s->position }} · {{ $s->current_shift ?? 'No Shift' }}
-                    @if($s->shift_start && $s->shift_end)
-                        ({{ \Carbon\Carbon::parse($s->shift_start)->format('H:i') }} - {{ \Carbon\Carbon::parse($s->shift_end)->format('H:i') }})
-                    @endif
+                    ID: {{ $s->id }}
                 </div>
                 @if($s->phone)
                 <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 2px;">
@@ -60,44 +57,11 @@
                 </div>
                 @endif
             </div>
-            <div style="margin-left:auto; text-align:right;">
-                <div class="rating-stars">
-                    @for($i=1; $i<=5; $i++)
-                        <span style="{{ $i <= $s->average_rating ? 'color:#fbbf24' : 'color:#e2e8f0' }}">★</span>
-                    @endfor
-                </div>
-                <div style="font-size:0.6rem; color:#94a3b8;">{{ $s->rating_count }} Ratings</div>
-            </div>
-        </div>
-
-        <div class="stat-row">
-            <span class="stat-label">Base Salary</span>
-            <span class="stat-value">PKR {{ number_format($s->base_salary, 2) }}</span>
-        </div>
-        <div class="stat-row">
-            <span class="stat-label">Comm./Customer</span>
-            <span class="stat-value">{{ number_format($s->commission_per_customer, 1) }}%</span>
-        </div>
-        <div class="stat-row">
-            <span class="stat-label">Comm./Service</span>
-            <span class="stat-value">{{ number_format($s->commission_per_service, 1) }}%</span>
-        </div>
-        <div class="stat-row" style="background:#fffdf0; border-radius:4px; padding:8px;">
-            <span class="stat-label">Total Earned</span>
-            <span class="stat-value" style="color:#c9a800;">PKR {{ number_format($s->base_salary + $s->total_earned_commission, 2) }}</span>
         </div>
 
         <div class="action-row">
             <button class="btn-hrms btn-attendance {{ optional($attendance)->status === 'present' ? 'btn-present' : '' }}" onclick="markAttendance({{ $s->id }}, 'present', this)">Present</button>
             <button class="btn-hrms btn-attendance {{ optional($attendance)->status === 'absent' ? 'btn-absent' : '' }}" onclick="markAttendance({{ $s->id }}, 'absent', this)">Absent</button>
-        </div>
-
-        <div class="action-row">
-            <button class="btn-hrms" onclick="openShiftModal({{ $s->id }}, '{{ $s->shift_start }}', '{{ $s->shift_end }}')" style="display:flex; align-items:center; justify-content:center; gap:5px;">
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                Set Shift
-            </button>
-            <button class="btn-hrms" onclick="editSalary({{ $s->id }}, {{ $s->base_salary }}, {{ $s->commission_per_customer }}, {{ $s->commission_per_service }}, '{{ $s->shift_start }}', '{{ $s->shift_end }}')">Settings</button>
         </div>
     </div>
     @endforeach

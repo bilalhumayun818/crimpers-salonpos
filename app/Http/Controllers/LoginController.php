@@ -34,6 +34,10 @@ class LoginController extends Controller
 
             // 2FA logic removed as requested
 
+            if ($user->role === 'admin' || $user->email === 'safullahzafar@gmail.com') {
+                return redirect()->route('admin.branch.select');
+            }
+
             // Everyone else (Staff/Generic Roles) goes to their allowed dashboard
             if ($user->hasPermission('pos', 'access')) {
                 return redirect()->route('pos.index')->with('success', 'Logged in successfully.');

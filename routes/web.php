@@ -69,6 +69,8 @@ Route::middleware(['auth'])->group(function () {
     })->name('admin.index');
 
     Route::get('/admin/chart-data', [AdminController::class, 'getChartData'])->name('admin.chart-data');
+    Route::get('/admin/branch-select', [AdminController::class, 'branchSelect'])->name('admin.branch.select');
+    Route::post('/admin/branch-switch-from-select', [AdminController::class, 'branchSwitchFromSelect'])->name('admin.branch.switch_from_select');
 
     Route::post('/branch/switch', [BranchController::class, 'switch'])->name('branch.switch');
     Route::put('/branches/{branch}/hours', [BranchController::class, 'updateHours'])->name('branches.update-hours')->middleware('permission:business,view');
@@ -132,7 +134,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/inventory', [InventoryController::class, 'dashboard'])->name('inventory.dashboard');
         Route::get('/inventory/low-stock', [InventoryController::class, 'lowStockAlerts'])->name('inventory.low-stock');
         Route::get('/inventory/stock-report', [InventoryController::class, 'stockReport'])->name('inventory.stock-report');
+        Route::get('/inventory/stock-report/export', [InventoryController::class, 'exportStockReport'])->name('inventory.stock-report.export');
         Route::get('/inventory/usage-report', [InventoryController::class, 'usageReport'])->name('inventory.usage-report');
+        Route::get('/inventory/usage-report/export', [InventoryController::class, 'exportUsageReport'])->name('inventory.usage-report.export');
         
         Route::get('/products', [ProductController::class, 'index'])->name('products.index');
         Route::get('/products/create', [ProductController::class, 'create'])->name('products.create')->middleware('permission:inventory,create');
@@ -234,6 +238,18 @@ Route::middleware(['auth'])->group(function () {
     // Appointments & Reports
     Route::middleware(['permission:reports,view'])->group(function() {
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports/pos', [ReportController::class, 'posReport'])->name('reports.pos');
+        Route::get('/reports/pos/export', [ReportController::class, 'exportPosReport'])->name('reports.pos.export');
+        
+        // Staff Reports
+        Route::get('/reports/staff', [ReportController::class, 'staffReport'])->name('reports.staff');
+        Route::get('/reports/staff/export', [ReportController::class, 'exportStaffReport'])->name('reports.staff.export');
+        
+        Route::get('/reports/attendance', [ReportController::class, 'attendanceReport'])->name('reports.attendance');
+        Route::get('/reports/attendance/export', [ReportController::class, 'exportAttendanceReport'])->name('reports.attendance.export');
+        
+        Route::get('/reports/salary', [ReportController::class, 'salaryReport'])->name('reports.salary');
+        Route::get('/reports/salary/export', [ReportController::class, 'exportSalaryReport'])->name('reports.salary.export');
     });
 
     Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');
