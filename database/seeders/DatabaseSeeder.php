@@ -13,19 +13,19 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Branch 1: Lahore
+        // Branch 1: Green Avenue
         \App\Models\Branch::firstOrCreate(['id' => 1], [
-            'name' => 'Lahore Branch',
-            'address' => 'Lahore City',
+            'name' => 'Green Avenue Branch',
+            'address' => 'Faisalabad City',
             'phone' => '03000000001',
             'opening_time' => '09:00:00',
             'closing_time' => '21:00:00',
             'is_active' => true
         ]);
 
-        // Branch 2: Faisalabad
+        // Branch 2: Pearl City
         \App\Models\Branch::firstOrCreate(['id' => 2], [
-            'name' => 'Faisalabad Branch',
+            'name' => 'Pearl City Branch',
             'address' => 'Faisalabad City',
             'phone' => '03000000002',
             'opening_time' => '09:00:00',
