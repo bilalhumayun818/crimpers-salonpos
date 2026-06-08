@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Branch;
+use App\Models\Staff;
+use Illuminate\Support\Facades\DB;
 
 class BranchController extends Controller
 {
@@ -20,16 +22,25 @@ class BranchController extends Controller
 
     public function updateHours(Request $request, Branch $branch)
     {
-        $request->validate([
+        $validated = $request->validate([
             'opening_time' => 'required|date_format:H:i',
             'closing_time' => 'required|date_format:H:i|after:opening_time',
         ]);
 
-        $branch->update([
-            'opening_time' => $request->opening_time,
-            'closing_time' => $request->closing_time,
-        ]);
+        DB::transaction(function () use ($branch, $validated) {
+            $branch->update([
+                'opening_time' => $validated['opening_time'],
+                'closing_time' => $validated['closing_time'],
+            ]);
 
-        return back()->with('success', "Operating hours updated for {$branch->name}");
+            Staff::withoutGlobalScopes()
+                ->where('branch_id', $branch->id)
+                ->update([
+                    'shift_start' => $validated['opening_time'],
+                    'shift_end' => $validated['closing_time'],
+                ]);
+        });
+
+        return back()->with('success', "Operating hours and employee default shifts updated for {$branch->name}");
     }
 }

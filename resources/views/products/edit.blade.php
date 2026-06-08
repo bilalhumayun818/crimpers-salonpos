@@ -76,9 +76,9 @@
                 </div>
                 <div>
                     <label class="f-label">Product Type <span style="color:#ef4444;">*</span></label>
-                    <select name="product_type" required class="f-select">
-                        <option value="retail" {{ $product->product_type==='retail'?'selected':'' }}>Retail Product</option>
-                        <option value="service_supply" {{ $product->product_type==='service_supply'?'selected':'' }}>Service Supply</option>
+                    <select name="product_type" id="product_type" required class="f-select">
+                        <option value="retail" {{ $product->product_type==='retail'?'selected':'' }}>For Sale</option>
+                        <option value="service_supply" {{ $product->product_type==='service_supply'?'selected':'' }}>Shop Use</option>
                     </select>
                 </div>
                 <div>
@@ -103,9 +103,9 @@
                 Pricing &amp; Inventory
             </div>
             <div class="f-grid-3" style="margin-bottom:14px;">
-                <div>
+                <div id="selling_price_wrapper">
                     <label class="f-label">Selling Price (PKR) <span style="color:#ef4444;">*</span></label>
-                    <input type="number" name="selling_price" min="0" step="0.01" value="{{ $product->selling_price }}" required class="f-input">
+                    <input type="number" name="selling_price" id="selling_price" min="0" step="0.01" value="{{ $product->selling_price }}" required class="f-input">
                 </div>
                 <div>
                     <label class="f-label">Cost Price (PKR)</label>
@@ -154,4 +154,23 @@
         <button type="submit" class="btn-danger">Delete Product</button>
     </form>
 </div>
+
+<script>
+    const productType = document.getElementById('product_type');
+    const sellingPriceWrapper = document.getElementById('selling_price_wrapper');
+    const sellingPriceInput = document.getElementById('selling_price');
+
+    productType.addEventListener('change', function() {
+        if(this.value === 'service_supply') {
+            sellingPriceWrapper.style.display = 'none';
+            sellingPriceInput.required = false;
+            if (!sellingPriceInput.value) sellingPriceInput.value = '0';
+        } else {
+            sellingPriceWrapper.style.display = 'block';
+            sellingPriceInput.required = true;
+        }
+    });
+    
+    productType.dispatchEvent(new Event('change'));
+</script>
 @endsection

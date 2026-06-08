@@ -87,8 +87,8 @@
         .type-btn.active .type-btn-label{color:var(--yk);}
 
         /* Form */
-        .login-form{width:100%;display:none;}
-        .login-form.visible{display:block;animation:fadeUp .3s ease-out;}
+        .login-form{width:100%;}
+        .login-form.visible{animation:fadeUp .3s ease-out;}
 
         .f-group{margin-bottom:18px;}
         .f-label{display:block;font-size:.82rem;font-weight:700;color:#334155;margin-bottom:7px;}
@@ -176,24 +176,10 @@
     <div class="auth-right">
         <div class="form-header">
             <h2>Welcome back</h2>
-            <p>Select your role and sign in to continue</p>
+            <p>Sign in to your account to continue</p>
         </div>
 
-        {{-- Type Selector --}}
-        <div class="type-grid">
-            <button type="button" class="type-btn" id="adminBtn" onclick="setType('admin')">
-                <div class="type-btn-icon">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                </div>
-                <span class="type-btn-label">Administrator</span>
-            </button>
-            <button type="button" class="type-btn" id="staffBtn" onclick="setType('staff')">
-                <div class="type-btn-icon">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                </div>
-                <span class="type-btn-label">Staff Member</span>
-            </button>
-        </div>
+
 
         @if($errors->any())
         <div class="error-box" style="width:100%;">
@@ -204,7 +190,6 @@
 
         <form action="{{ route('login') }}" method="POST" id="loginForm" class="login-form">
             @csrf
-            <input type="hidden" name="type" id="loginType" value="staff">
 
             <div class="f-group">
                 <label class="f-label">Email Address</label>
@@ -234,14 +219,6 @@
     </div>
 
     <script>
-        function setType(type) {
-            document.getElementById('loginType').value = type;
-            const form = document.getElementById('loginForm');
-            form.classList.add('visible');
-
-            document.getElementById('adminBtn').classList.toggle('active', type === 'admin');
-            document.getElementById('staffBtn').classList.toggle('active', type === 'staff');
-        }
 
         function togglePassword() {
             const pass = document.getElementById('password');
@@ -255,9 +232,6 @@
             }
         }
 
-        @if(old('type') || $errors->any())
-            setType('{{ old('type', 'staff') }}');
-        @endif
     </script>
 </body>
 </html>

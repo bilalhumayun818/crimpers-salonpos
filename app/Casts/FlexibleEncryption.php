@@ -38,6 +38,6 @@ class FlexibleEncryption implements CastsAttributes
         }
 
         // Always encrypt on save
-        return Crypt::encryptString((string)$value);
+        return Crypt::encryptString((string) $value);
     }
 }

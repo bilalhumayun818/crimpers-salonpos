@@ -11,7 +11,7 @@
 .btn-link:hover{background:var(--y1);}
 
 /* Stats */
-.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:22px;}
 .stat-card{background:#fff;border:1.5px solid #f0e8a0;border-radius:14px;padding:18px;display:flex;align-items:center;gap:14px;box-shadow:0 1px 4px rgba(0,0,0,.04);transition:.2s;}
 .stat-card:hover{box-shadow:0 4px 14px rgba(247,223,121,.2);border-color:var(--y1);}
 .stat-icon{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -94,9 +94,9 @@
             <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
         </div>
         <div>
-            <div class="stat-val" style="font-size:1.1rem;">PKR {{ number_format($totalInventoryValue,0) }}</div>
-            <div class="stat-lbl">Inventory Value</div>
-            <div class="stat-note">Cost basis</div>
+            <div class="stat-val" style="font-size:1rem;">PKR {{ number_format($forSaleRetailValue,0) }}</div>
+            <div class="stat-lbl">For Sale Retail Value</div>
+            <div class="stat-note">Potential retail revenue</div>
         </div>
     </div>
     <div class="stat-card">
@@ -104,9 +104,19 @@
             <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
         </div>
         <div>
-            <div class="stat-val" style="font-size:1.1rem;">PKR {{ number_format($totalRetailValue,0) }}</div>
-            <div class="stat-lbl">Retail Value</div>
-            <div class="stat-note">Selling price</div>
+            <div class="stat-val" style="font-size:1rem;">PKR {{ number_format($forSaleCostValue,0) }}</div>
+            <div class="stat-lbl">For Sale Cost</div>
+            <div class="stat-note">Cost of retail goods</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#e0e7ff;color:#4338ca;">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        </div>
+        <div>
+            <div class="stat-val" style="font-size:1rem;">PKR {{ number_format($shopUseCostValue,0) }}</div>
+            <div class="stat-lbl">Shop Use Cost</div>
+            <div class="stat-note">Cost of supplies</div>
         </div>
     </div>
     <div class="stat-card">

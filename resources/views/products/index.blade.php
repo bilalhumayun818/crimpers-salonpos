@@ -75,8 +75,8 @@
         <label>Product Type</label>
         <select name="type" onchange="this.form.submit()">
             <option value="all" {{ request('type','all')==='all'?'selected':'' }}>All Types</option>
-            <option value="retail" {{ request('type')==='retail'?'selected':'' }}>Retail Products</option>
-            <option value="service_supply" {{ request('type')==='service_supply'?'selected':'' }}>Service Supplies</option>
+            <option value="retail" {{ request('type')==='retail'?'selected':'' }}>For Sale</option>
+            <option value="service_supply" {{ request('type')==='service_supply'?'selected':'' }}>Shop Use</option>
         </select>
     </div>
     <div class="fg">
@@ -104,7 +104,7 @@
     @forelse($products as $product)
     <div class="product-card">
         <span class="type-badge {{ $product->product_type==='retail'?'type-retail':'type-service' }}">
-            {{ ucfirst(str_replace('_',' ',$product->product_type)) }}
+            {{ $product->product_type==='retail' ? 'For Sale' : 'Shop Use' }}
         </span>
         <div class="p-name">{{ $product->name }}</div>
         <div class="p-sku">
@@ -113,7 +113,9 @@
         </div>
         <div class="price-box">
             <div class="price-lbl">Selling Price</div>
-            <div class="price-val">PKR {{ number_format($product->selling_price, 2) }}</div>
+            <div class="price-val">
+                {{ $product->product_type === 'retail' ? 'PKR ' . number_format($product->selling_price, 2) : '—' }}
+            </div>
         </div>
         <div class="card-stats">
             <div class="stat-box">

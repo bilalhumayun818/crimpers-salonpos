@@ -84,6 +84,22 @@ class Staff extends Model
         }
     }
 
+    public function getShiftDurationHoursAttribute()
+    {
+        if (!$this->shift_start || !$this->shift_end) {
+            return 0;
+        }
+
+        $start = \Carbon\Carbon::parse($this->shift_start);
+        $end = \Carbon\Carbon::parse($this->shift_end);
+
+        if ($end->lessThanOrEqualTo($start)) {
+            $end->addDay();
+        }
+
+        return $start->diffInMinutes($end) / 60;
+    }
+
     public function getIsPresentTodayAttribute()
     {
         $today = now()->toDateString();

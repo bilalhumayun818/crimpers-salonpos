@@ -27,12 +27,17 @@ class InventoryController extends Controller
             ->with('supplier')
             ->get();
 
-        // Inventory value calculations (robust against NULL values)
-        $totalInventoryValue = Product::where('track_inventory', true)
+        $forSaleCostValue = Product::where('track_inventory', true)
+            ->where('product_type', 'retail')
             ->sum(DB::raw('current_stock * COALESCE(cost_price, 0)'));
 
-        $totalRetailValue = Product::where('track_inventory', true)
+        $forSaleRetailValue = Product::where('track_inventory', true)
+            ->where('product_type', 'retail')
             ->sum(DB::raw('current_stock * COALESCE(selling_price, 0)'));
+
+        $shopUseCostValue = Product::where('track_inventory', true)
+            ->where('product_type', 'service_supply')
+            ->sum(DB::raw('current_stock * COALESCE(cost_price, 0)'));
 
         // Recent purchases
         $recentPurchases = Purchase::with('supplier')
@@ -64,8 +69,9 @@ class InventoryController extends Controller
         return view('inventory.dashboard', compact(
             'lowStockProducts',
             'outOfStockProducts',
-            'totalInventoryValue',
-            'totalRetailValue',
+            'forSaleCostValue',
+            'forSaleRetailValue',
+            'shopUseCostValue',
             'recentPurchases',
             'pendingDeliveries',
             'topUsedProducts',

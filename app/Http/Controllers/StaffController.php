@@ -9,6 +9,7 @@ use App\Models\LeaveRequest;
 use App\Models\UpsellPerformance;
 use App\Models\Service;
 use App\Models\StaffRole;
+use App\Models\Branch;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -26,7 +27,9 @@ class StaffController extends Controller
     {
         $services = Service::all();
         $roles = StaffRole::all();
-        return view('staff.create', compact('services', 'roles'));
+        $currentBranch = Branch::find(session('current_branch_id', auth()->user()->branch_id ?? 1));
+
+        return view('staff.create', compact('services', 'roles', 'currentBranch'));
     }
 
     public function store(Request $request)

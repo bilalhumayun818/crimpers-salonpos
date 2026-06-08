@@ -35,8 +35,9 @@ class CustomerController extends Controller
     {
         $appointments = $customer->appointments()->with('service')->latest()->get();
         $invoices = $customer->invoices()->with('items')->latest()->get();
+        $lastVisit = $invoices->first()?->created_at;
         
-        return view('customers.show', compact('customer', 'appointments', 'invoices'));
+        return view('customers.show', compact('customer', 'appointments', 'invoices', 'lastVisit'));
     }
 
     public function store(Request $request)

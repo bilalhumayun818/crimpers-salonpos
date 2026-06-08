@@ -71,7 +71,7 @@
 
 <div class="status-row">
     <span class="sbadge {{ $product->product_type==='retail'?'sb-retail':'sb-service' }}">
-        {{ ucfirst(str_replace('_',' ',$product->product_type)) }}
+        {{ $product->product_type==='retail' ? 'For Sale' : 'Shop Use' }}
     </span>
     @if($product->current_stock<=0)
         <span class="sbadge sb-out">Out of Stock</span>
@@ -89,7 +89,7 @@
             Product Info
         </div>
         <div class="drow"><span class="dlbl">SKU</span><span class="dval">{{ $product->sku ?: '—' }}</span></div>
-        <div class="drow"><span class="dlbl">Type</span><span class="dval">{{ ucfirst(str_replace('_',' ',$product->product_type)) }}</span></div>
+        <div class="drow"><span class="dlbl">Type</span><span class="dval">{{ $product->product_type==='retail' ? 'For Sale' : 'Shop Use' }}</span></div>
         <div class="drow"><span class="dlbl">Supplier</span><span class="dval">{{ $product->supplier?->name ?? '—' }}</span></div>
         <div class="drow"><span class="dlbl">Description</span><span class="dval" style="max-width:180px;text-align:right;font-size:.78rem;">{{ $product->description ?: '—' }}</span></div>
     </div>
@@ -99,17 +99,21 @@
             <div class="dcard-icon"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
             Pricing
         </div>
-        <div class="drow"><span class="dlbl">Selling Price</span><span class="dval" style="color:var(--ydark);">PKR {{ number_format($product->selling_price,2) }}</span></div>
+        @if($product->product_type === 'retail')
+            <div class="drow"><span class="dlbl">Selling Price</span><span class="dval" style="color:var(--ydark);">PKR {{ number_format($product->selling_price,2) }}</span></div>
+        @endif
         <div class="drow"><span class="dlbl">Cost Price</span><span class="dval">{{ $product->cost_price ? 'PKR '.number_format($product->cost_price,2) : '—' }}</span></div>
-        <div class="drow">
-            <span class="dlbl">Profit Margin</span>
-            <span class="dval">
-                @if($product->cost_price && $product->selling_price)
-                    {{ number_format((($product->selling_price-$product->cost_price)/$product->cost_price)*100,1) }}%
-                @else —
-                @endif
-            </span>
-        </div>
+        @if($product->product_type === 'retail')
+            <div class="drow">
+                <span class="dlbl">Profit Margin</span>
+                <span class="dval">
+                    @if($product->cost_price && $product->selling_price)
+                        {{ number_format((($product->selling_price-$product->cost_price)/$product->cost_price)*100,1) }}%
+                    @else —
+                    @endif
+                </span>
+            </div>
+        @endif
     </div>
 </div>
 

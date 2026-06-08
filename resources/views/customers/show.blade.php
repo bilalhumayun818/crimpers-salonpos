@@ -188,7 +188,7 @@
         </div>
         <div class="stat-card">
             <div class="stat-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
-            <div class="stat-val">{{ $customer->last_visit_at ? $customer->last_visit_at->diffForHumans() : 'Never' }}</div>
+            <div class="stat-val">{{ $lastVisit ? $lastVisit->format('M d, Y') : 'Never' }}</div>
             <div class="stat-lbl">Last Visit</div>
         </div>
     </div>

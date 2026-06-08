@@ -447,11 +447,11 @@
                         </div>
                         <div class="f-group">
                             <label class="f-label">Shift Start <span>*</span></label>
-                            <input type="time" name="shift_start" value="{{ old('shift_start') }}" required class="f-input">
+                            <input type="time" name="shift_start" value="{{ old('shift_start', $currentBranch?->opening_time ? \Carbon\Carbon::parse($currentBranch->opening_time)->format('H:i') : '') }}" required class="f-input">
                         </div>
                         <div class="f-group">
                             <label class="f-label">Shift End <span>*</span></label>
-                            <input type="time" name="shift_end" value="{{ old('shift_end') }}" required class="f-input">
+                            <input type="time" name="shift_end" value="{{ old('shift_end', $currentBranch?->closing_time ? \Carbon\Carbon::parse($currentBranch->closing_time)->format('H:i') : '') }}" required class="f-input">
                         </div>
                     </div>
                 </div>

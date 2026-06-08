@@ -314,7 +314,7 @@
                         <div class="stat-row">
                             <span class="stat-label">This Month Hours</span>
                             <span
-                                class="stat-value">{{ $member->attendances()->whereMonth('attendance_date', now()->month)->count() * 8 }}h</span>
+                                class="stat-value">{{ rtrim(rtrim(number_format($member->attendances()->whereYear('attendance_date', now()->year)->whereMonth('attendance_date', now()->month)->count() * $member->shift_duration_hours, 2), '0'), '.') }}h</span>
                         </div>
                         @if($member->upsellPerformance)
                             <div class="stat-row">

@@ -25,7 +25,7 @@ class POSController extends Controller
     {
         $categories = Category::all();
         $services = Service::all();
-        $products = Product::where('current_stock', '>', 0)->get();
+        $products = Product::where('current_stock', '>', 0)->where('product_type', 'retail')->get();
         $packages = ServicePackage::where('is_active', true)->get();
         $popularServices = Service::where('is_popular', true)->get();
 
