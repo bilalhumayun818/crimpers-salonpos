@@ -114,7 +114,7 @@
         <div class="price-box">
             <div class="price-lbl">Selling Price</div>
             <div class="price-val">
-                {{ $product->product_type === 'retail' ? 'PKR ' . number_format($product->selling_price, 2) : '—' }}
+                PKR {{ number_format($product->selling_price, 2) }}
             </div>
         </div>
         <div class="card-stats">
