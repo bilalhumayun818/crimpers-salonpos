@@ -245,4 +245,49 @@ class InventoryController extends Controller
 
         return response()->stream($callback, 200, $headers);
     }
+
+    public function issueShopUse()
+    {
+        $products = Product::where('track_inventory', true)
+            ->where('current_stock', '>', 0)
+            ->orderBy('name')
+            ->get();
+        return view('inventory.issue-shop-use', compact('products'));
+    }
+
+    public function storeShopUse(Request $request)
+    {
+        $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'quantity' => 'required|numeric|min:1',
+            'notes' => 'nullable|string'
+        ]);
+
+        $product = Product::findOrFail($request->product_id);
+        
+        if ($product->current_stock < $request->quantity) {
+            return back()->with('error', 'Not enough stock available.');
+        }
+
+        DB::transaction(function() use ($product, $request) {
+            $product->decrement('current_stock', $request->quantity);
+
+            ProductUsage::create([
+                'product_id' => $product->id,
+                'quantity_used' => $request->quantity,
+                'usage_date' => now(),
+                'notes' => $request->notes ?? 'Issued for shop use'
+            ]);
+
+            \App\Models\Expense::create([
+                'branch_id' => $product->branch_id,
+                'description' => 'Shop Use Product Issue: ' . $product->name . ' (' . $request->quantity . ' qty)',
+                'amount' => ($product->cost_price ?? 0) * $request->quantity,
+                'deducted_from_drawer' => false,
+                'user_id' => auth()->id()
+            ]);
+        });
+
+        return redirect()->route('inventory.dashboard')->with('success', 'Product issued and expense added successfully.');
+    }
 }

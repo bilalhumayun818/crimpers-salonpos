@@ -80,10 +80,30 @@ class ProductController extends Controller
             'category_id' => 'nullable|exists:categories,id'
         ]);
 
+        $sell = $request->input('selling_price');
+        $cost = $request->input('cost_price');
+
+        if ($sell === null && $cost !== null) {
+            $validated['selling_price'] = $cost;
+        } elseif ($cost === null && $sell !== null) {
+            $validated['cost_price'] = $sell;
+        } elseif ($sell === null && $cost === null) {
+            $validated['selling_price'] = 0;
+            $validated['cost_price'] = 0;
+        } else {
+            $validated['selling_price'] = $sell;
+            $validated['cost_price'] = $cost;
+        }
+
         $validated['track_inventory'] = $request->has('track_inventory');
 
-        DB::transaction(function() use ($validated) {
+        DB::transaction(function() use ($validated, $request) {
             $product = Product::create($validated);
+            
+            if ($request->has('created_at') && $request->created_at) {
+                $product->created_at = $request->created_at;
+                $product->save();
+            }
 
             // If initial stock is > 0, record it as a purchase history
             if ($product->current_stock > 0) {
@@ -142,7 +162,7 @@ class ProductController extends Controller
             'supplier_id' => 'nullable|exists:suppliers,id',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'selling_price' => 'required|numeric|min:0',
+            'selling_price' => 'nullable|numeric|min:0',
             'cost_price' => 'nullable|numeric|min:0',
             'current_stock' => 'required|numeric|min:0',
             'min_stock_level' => 'required|numeric|min:0',
@@ -151,11 +171,29 @@ class ProductController extends Controller
             'track_inventory' => 'nullable'
         ]);
 
+        $sell = $request->input('selling_price');
+        $cost = $request->input('cost_price');
+
+        if ($sell === null && $cost !== null) {
+            $validated['selling_price'] = $cost;
+        } elseif ($cost === null && $sell !== null) {
+            $validated['cost_price'] = $sell;
+        } elseif ($sell === null && $cost === null) {
+            $validated['selling_price'] = 0;
+            $validated['cost_price'] = 0;
+        } else {
+            $validated['selling_price'] = $sell;
+            $validated['cost_price'] = $cost;
+        }
+
         $validated['track_inventory'] = $request->has('track_inventory');
 
-
-
         $product->update($validated);
+        
+        if ($request->has('created_at') && $request->created_at) {
+            $product->created_at = $request->created_at;
+            $product->save();
+        }
 
         return redirect()->route('products.index')->with('success', 'Product updated successfully.');
     }

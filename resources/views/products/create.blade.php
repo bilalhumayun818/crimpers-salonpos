@@ -418,6 +418,10 @@
                             @endforeach
                         </select>
                     </div>
+                    <div>
+                        <label class="f-label">Date</label>
+                        <input type="date" name="created_at" value="{{ date('Y-m-d') }}" class="f-input">
+                    </div>
                 </div>
                 <div class="f-row">
                     <label class="f-label">Description <span
@@ -436,8 +440,8 @@
                 </div>
                 <div class="f-grid-3" style="margin-bottom:14px;">
                     <div id="selling_price_wrapper">
-                        <label class="f-label">Selling Price (PKR) <span style="color:#ef4444;">*</span></label>
-                        <input type="number" name="selling_price" id="selling_price" min="0" step="0.01" required class="f-input"
+                        <label class="f-label">Selling Price (PKR)</label>
+                        <input type="number" name="selling_price" id="selling_price" min="0" step="0.01" class="f-input"
                             placeholder="0.00">
                     </div>
                     <div>
@@ -625,20 +629,6 @@
         });
 
         const productType = document.getElementById('product_type');
-        const sellingPriceWrapper = document.getElementById('selling_price_wrapper');
-        const sellingPriceInput = document.getElementById('selling_price');
-
-        productType.addEventListener('change', function() {
-            if(this.value === 'service_supply') {
-                sellingPriceWrapper.style.display = 'none';
-                sellingPriceInput.required = false;
-                if (!sellingPriceInput.value) sellingPriceInput.value = '0';
-            } else {
-                sellingPriceWrapper.style.display = 'block';
-                sellingPriceInput.required = true;
-            }
-        });
-        
-        productType.dispatchEvent(new Event('change'));
+        // Both prices are always shown now
     </script>
 @endsection

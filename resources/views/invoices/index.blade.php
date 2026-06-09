@@ -401,6 +401,7 @@
                     <th>Order #</th>
                     <th>Order Date</th>
                     <th>Supplier</th>
+                    <th>Products Adjusted</th>
                     <th>Total Cost</th>
                     <th>Exp. Revenue</th>
                     <th>Potential Profit</th>
@@ -419,6 +420,15 @@
                     <td>{{ $pur->order_date->format('M d, Y') }}</td>
                     <td>
                         <div style="font-weight:600;color:#1e293b;">{{ $pur->supplier ? $pur->supplier->name : 'Walk-in Supplier' }}</div>
+                    </td>
+                    <td>
+                        <div style="font-size:0.8rem; color:#475569; max-height: 60px; overflow-y: auto;">
+                        @forelse($pur->purchaseItems as $item)
+                            <div>{{ $item->product->name ?? 'Unknown' }} <strong style="color:#10b981;">(+{{ $item->quantity_received ?? $item->quantity_ordered }})</strong></div>
+                        @empty
+                            <span style="color:#94a3b8;">No items</span>
+                        @endforelse
+                        </div>
                     </td>
                     <td style="font-weight:700;color:#64748b;">PKR {{ number_format($pur->total_amount, 2) }}</td>
                     <td style="font-weight:800;color:#c9a800;">PKR {{ number_format($revenue, 2) }}</td>

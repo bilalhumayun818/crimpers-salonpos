@@ -137,6 +137,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/inventory/stock-report/export', [InventoryController::class, 'exportStockReport'])->name('inventory.stock-report.export');
         Route::get('/inventory/usage-report', [InventoryController::class, 'usageReport'])->name('inventory.usage-report');
         Route::get('/inventory/usage-report/export', [InventoryController::class, 'exportUsageReport'])->name('inventory.usage-report.export');
+        Route::get('/inventory/issue-shop-use', [InventoryController::class, 'issueShopUse'])->name('inventory.issue-shop-use');
+        Route::post('/inventory/store-shop-use', [InventoryController::class, 'storeShopUse'])->name('inventory.store-shop-use');
         
         Route::get('/products', [ProductController::class, 'index'])->name('products.index');
         Route::get('/products/create', [ProductController::class, 'create'])->name('products.create')->middleware('permission:inventory,create');

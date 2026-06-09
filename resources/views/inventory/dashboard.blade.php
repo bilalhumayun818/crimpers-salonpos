@@ -69,11 +69,10 @@
         <a href="{{ route('products.index') }}" class="btn-link">
             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
             All Products
+        <a href="{{ route('inventory.issue-shop-use') }}" class="btn-link" style="background:#18181b;color:#fff;border-color:#18181b;">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            Issue Shop Use
         </a>
-        <!-- <a href="{{ route('purchases.create') }}" class="btn-link" style="background:#18181b;color:#fff;border-color:#18181b;">
-            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            New Purchase
-        </a> -->
     </div>
 </div>
 
