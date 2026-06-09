@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('title', 'Purchase Order Details')
 
 @section('content')
@@ -94,8 +94,9 @@
 </div>
 
 <div class="items-table">
-    <div class="items-head">
+    <div class="items-head" style="grid-template-columns:2fr 1.5fr 1fr 1fr 1fr 1fr 1fr;">
         <span>Product</span>
+        <span>Prices (Cost / Sell)</span>
         <span>Ordered</span>
         <span>Received</span>
         <span>Unit Cost</span>
@@ -103,8 +104,20 @@
         <span>Status</span>
     </div>
     @foreach($purchase->purchaseItems as $item)
-    <div class="items-row">
+    <div class="items-row" style="grid-template-columns:2fr 1.5fr 1fr 1fr 1fr 1fr 1fr;">
         <span class="product-name">{{ $item->product->name }}</span>
+        <span style="font-size: 0.8rem; line-height: 1.4;">
+            <div style="color: #64748b;">Cost: <b>PKR {{ number_format($item->product->cost_price, 2) }}</b></div>
+            <div style="color: #64748b;">Sell: <b>PKR {{ number_format($item->product->selling_price, 2) }}</b></div>
+            @php
+                $history = $item->product->priceHistories->first();
+            @endphp
+            @if($history)
+                <div style="color: #f59e0b; font-size: 0.7rem; margin-top: 4px;">
+                    Changed from: Cost <b>{{ $history->old_cost_price + 0 }}</b>, Sell <b>{{ $history->old_selling_price + 0 }}</b>
+                </div>
+            @endif
+        </span>
         <span class="quantity">{{ $item->quantity_ordered }}</span>
         <span class="quantity">{{ $item->quantity_received ?: 0 }}</span>
         <span class="quantity">PKR {{ number_format($item->unit_cost, 2) }}</span>

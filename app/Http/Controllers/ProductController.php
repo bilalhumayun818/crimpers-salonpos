@@ -69,7 +69,7 @@ class ProductController extends Controller
             'supplier_id' => 'nullable|exists:suppliers,id',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'selling_price' => 'required|numeric|min:0',
+            'selling_price' => 'nullable|numeric|min:0',
             'cost_price' => 'nullable|numeric|min:0',
             'current_stock' => 'required|numeric|min:0',
             'min_stock_level' => 'required|numeric|min:0',
@@ -80,12 +80,17 @@ class ProductController extends Controller
             'category_id' => 'nullable|exists:categories,id'
         ]);
 
-        $sell = $request->input('selling_price');
-        $cost = $request->input('cost_price');
+        // After validation, nullable fields come through as null when left empty
+        $sell = isset($validated['selling_price']) && $validated['selling_price'] !== null && $validated['selling_price'] !== '' ? (float) $validated['selling_price'] : null;
+        $cost = isset($validated['cost_price']) && $validated['cost_price'] !== null && $validated['cost_price'] !== '' ? (float) $validated['cost_price'] : null;
 
         if ($sell === null && $cost !== null) {
+            // Only cost given — selling price defaults to cost
             $validated['selling_price'] = $cost;
+            $validated['cost_price'] = $cost;
         } elseif ($cost === null && $sell !== null) {
+            // Only selling price given — cost defaults to selling price
+            $validated['selling_price'] = $sell;
             $validated['cost_price'] = $sell;
         } elseif ($sell === null && $cost === null) {
             $validated['selling_price'] = 0;
@@ -171,12 +176,17 @@ class ProductController extends Controller
             'track_inventory' => 'nullable'
         ]);
 
-        $sell = $request->input('selling_price');
-        $cost = $request->input('cost_price');
+        // After validation, nullable fields come through as null when left empty
+        $sell = isset($validated['selling_price']) && $validated['selling_price'] !== null && $validated['selling_price'] !== '' ? (float) $validated['selling_price'] : null;
+        $cost = isset($validated['cost_price']) && $validated['cost_price'] !== null && $validated['cost_price'] !== '' ? (float) $validated['cost_price'] : null;
 
         if ($sell === null && $cost !== null) {
+            // Only cost given — selling price defaults to cost
             $validated['selling_price'] = $cost;
+            $validated['cost_price'] = $cost;
         } elseif ($cost === null && $sell !== null) {
+            // Only selling price given — cost defaults to selling price
+            $validated['selling_price'] = $sell;
             $validated['cost_price'] = $sell;
         } elseif ($sell === null && $cost === null) {
             $validated['selling_price'] = 0;
@@ -188,8 +198,22 @@ class ProductController extends Controller
 
         $validated['track_inventory'] = $request->has('track_inventory');
 
+        $oldSellingPrice = $product->selling_price;
+        $oldCostPrice = $product->cost_price;
+
         $product->update($validated);
         
+        if ($oldSellingPrice != $product->selling_price || $oldCostPrice != $product->cost_price) {
+            \App\Models\ProductPriceHistory::create([
+                'product_id' => $product->id,
+                'user_id' => auth()->id(),
+                'old_selling_price' => $oldSellingPrice,
+                'new_selling_price' => $product->selling_price,
+                'old_cost_price' => $oldCostPrice,
+                'new_cost_price' => $product->cost_price,
+            ]);
+        }
+
         if ($request->has('created_at') && $request->created_at) {
             $product->created_at = $request->created_at;
             $product->save();

@@ -56,6 +56,11 @@ class Product extends Model
         return $this->hasMany(ProductUsage::class);
     }
 
+    public function priceHistories()
+    {
+        return $this->hasMany(ProductPriceHistory::class)->latest();
+    }
+
     public function purchaseItems()
     {
         return $this->hasMany(PurchaseItem::class);
