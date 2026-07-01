@@ -43,10 +43,35 @@
             z-index: 50;
             overflow-y: auto;
             overflow-x: hidden;
-            transition: width .25s cubic-bezier(.4,0,.2,1);
+            transition: width .25s cubic-bezier(.4,0,.2,1), transform .25s cubic-bezier(.4,0,.2,1);
         }
 
         .sidebar.collapsed { width: 0; border-right: none; overflow: hidden; }
+
+        /* Mobile: sidebar slides in as a full-height drawer */
+        @media(max-width:768px){
+            .sidebar {
+                width: 260px !important;
+                transform: translateX(-100%);
+                box-shadow: none;
+                z-index: 200;
+            }
+            .sidebar.mobile-open {
+                transform: translateX(0);
+                box-shadow: 4px 0 24px rgba(0,0,0,.18);
+            }
+        }
+
+        /* Overlay backdrop for mobile drawer */
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.45);
+            z-index: 199;
+            backdrop-filter: blur(2px);
+        }
+        .sidebar-backdrop.visible { display: block; }
 
         /* ── Header ── */
         .sidebar-header {
@@ -370,10 +395,19 @@
 
         .main-content.sidebar-collapsed { margin-left: 0; }
 
+        /* Mobile: content always full width */
+        @media(max-width:768px){
+            .main-content { margin-left: 0 !important; }
+        }
+
         .main-body {
             flex: 1 1 auto;
             padding: 28px;
             min-height: 0;
+        }
+
+        @media(max-width:640px){
+            .main-body { padding: 16px; }
         }
 
         .main-footer {
@@ -494,9 +528,18 @@
         ::-webkit-scrollbar-track { background: #f5f6fa; }
         ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 99px; }
         ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+        /* Hide POS button on mobile — not usable on small screens */
+        @media(max-width:768px){
+            #pos-header-btn { display: none !important; }
+            .top-header-date { display: none; }
+            .branch-switcher-wrap { display: none; }
+            .top-header-user span { display: none; }
+            .top-header-user { padding: 4px; border-radius: 50%; }
+        }
     </style>
 </head>
 <body>
+<div id="sidebar-backdrop" class="sidebar-backdrop"></div>
 <div class="app-shell">
 
     @include('layouts.sidebar')
@@ -553,7 +596,8 @@
                     {{ now()->format('M j, Y') }}
                 </div>
 
-                <a href="{{ route('pos.index') }}" class="top-header-btn pos-btn">
+                {{-- POS button: hidden on mobile (POS not suitable for small screens) --}}
+                <a href="{{ route('pos.index') }}" class="top-header-btn pos-btn" id="pos-header-btn">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
                         <path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                     </svg>
@@ -602,8 +646,25 @@
     const sidebar    = document.getElementById('appSidebar');
     const mainContent = document.getElementById('mainContent');
     const toggleBtn  = document.getElementById('sidebarToggle');
+    const backdrop   = document.getElementById('sidebar-backdrop');
+    const isMobile   = () => window.innerWidth <= 768;
 
-    // ── Sidebar collapse ──────────────────────────────────────────
+    // ── Mobile drawer toggle ──────────────────────────────────────
+    function openMobileDrawer() {
+        sidebar.classList.add('mobile-open');
+        backdrop.classList.add('visible');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeMobileDrawer() {
+        sidebar.classList.remove('mobile-open');
+        backdrop.classList.remove('visible');
+        document.body.style.overflow = '';
+    }
+
+    backdrop.addEventListener('click', closeMobileDrawer);
+
+    // ── Sidebar collapse (desktop) ──────────────────────────────
     const COLLAPSED_KEY = 'sm_sidebar_collapsed';
 
     function applySidebarState(collapsed, animate) {
@@ -614,21 +675,48 @@
         sidebar.classList.toggle('collapsed', collapsed);
         mainContent.classList.toggle('sidebar-collapsed', collapsed);
         if (!animate) {
-            // force reflow then re-enable transitions
             sidebar.offsetHeight;
             sidebar.style.transition    = '';
             mainContent.style.transition = '';
         }
     }
 
-    // restore on load (no animation)
-    const isCollapsed = localStorage.getItem(COLLAPSED_KEY) === '1';
-    applySidebarState(isCollapsed, false);
+    // Restore desktop state on load (no animation)
+    if (!isMobile()) {
+        const isCollapsed = localStorage.getItem(COLLAPSED_KEY) === '1';
+        applySidebarState(isCollapsed, false);
+    }
 
     toggleBtn.addEventListener('click', function () {
-        const nowCollapsed = !sidebar.classList.contains('collapsed');
-        applySidebarState(nowCollapsed, true);
-        localStorage.setItem(COLLAPSED_KEY, nowCollapsed ? '1' : '0');
+        if (isMobile()) {
+            // Mobile: toggle drawer
+            if (sidebar.classList.contains('mobile-open')) {
+                closeMobileDrawer();
+            } else {
+                openMobileDrawer();
+            }
+        } else {
+            // Desktop: collapse/expand sidebar
+            const nowCollapsed = !sidebar.classList.contains('collapsed');
+            applySidebarState(nowCollapsed, true);
+            localStorage.setItem(COLLAPSED_KEY, nowCollapsed ? '1' : '0');
+        }
+    });
+
+    // Close mobile drawer when a nav link is clicked
+    sidebar.querySelectorAll('.sidebar-link').forEach(function(link) {
+        link.addEventListener('click', function() {
+            if (isMobile()) closeMobileDrawer();
+        });
+    });
+
+    // Handle resize: close mobile drawer if resizing to desktop
+    window.addEventListener('resize', function() {
+        if (!isMobile()) {
+            closeMobileDrawer();
+            const isCollapsed = localStorage.getItem(COLLAPSED_KEY) === '1';
+            applySidebarState(isCollapsed, false);
+        }
     });
 
     // ── Section collapse (accordion) ──────────────────────────────

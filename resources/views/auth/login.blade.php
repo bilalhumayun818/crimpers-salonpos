@@ -13,7 +13,10 @@
             min-height:100vh;
             display:flex;
             background:#0f0f0f;
-            overflow:hidden;
+            overflow-x:hidden;
+        }
+        @media(max-width:480px){
+            body{overflow-y:auto;}
         }
 
         /* Left decorative panel */
@@ -65,7 +68,13 @@
         }
         @media(max-width:768px){
             .auth-left{display:none;}
-            .auth-right{width:100%;padding:40px 28px;}
+            .auth-right{width:100%;padding:40px 24px;min-height:100vh;justify-content:flex-start;padding-top:60px;}
+            .form-header{margin-bottom:24px;}
+            .btn-login{padding:15px;font-size:1rem;}
+            .f-input{padding:13px 14px;font-size:1rem;}
+        }
+        @media(max-width:380px){
+            .auth-right{padding:40px 18px;}
         }
 
         .form-header{width:100%;margin-bottom:32px;}
@@ -215,7 +224,7 @@
             <a href="{{ route('password.request') }}">Forgot your password?</a>
         </div>
 
-        <div class="auth-footer">Powered by The Crimpers</div>
+        <div class="auth-footer">Powered by The BroshTech</div>
     </div>
 
     <script>

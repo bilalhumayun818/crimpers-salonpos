@@ -43,7 +43,7 @@ input:checked + .slider:before{transform:translateX(18px);}
             @foreach(\App\Models\Branch::all() as $branch)
             <form action="{{ route('branches.update-hours', $branch) }}" method="POST" style="background:#fcfcfc;border:1.5px solid #f1f5f9;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px;">
                 @csrf @method('PUT')
-                <div style="font-weight:800;color:#334155;font-size:.95rem;">📍 {{ $branch->name }}</div>
+                <div style="font-weight:800;color:#334155;font-size:.95rem;"> {{ $branch->name }}</div>
                 <div style="display:flex;gap:10px;align-items:center;">
                     <div style="flex:1;">
                         <label style="font-size:.75rem;font-weight:700;color:#64748b;text-transform:uppercase;">Opening Time</label>

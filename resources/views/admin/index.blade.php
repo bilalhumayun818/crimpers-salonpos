@@ -112,6 +112,42 @@
 .chart-tab{padding:8px 16px;font-size:.78rem;font-weight:700;color:#64748b;border-radius:10px;cursor:pointer;transition:.2s;border:none;background:transparent;}
 .chart-tab.active{background:#fff;color:var(--yk);box-shadow:0 2px 8px rgba(0,0,0,.05);border:1px solid #f0e8b0;}
 .chart-peak{font-size:.72rem;font-weight:700;color:#16a34a;background:#dcfce7;padding:4px 10px;border-radius:99px;display:inline-flex;align-items:center;gap:4px;}
+
+/* ══ MOBILE RESPONSIVE ══════════════════════════════════════════ */
+@media(max-width:640px){
+    /* Hero: stack vertically, hide date box to save space */
+    .dash-hero{flex-direction:column;align-items:flex-start;padding:20px;border-radius:16px;margin-bottom:16px;gap:12px;}
+    .dash-hero-right{display:none;}
+    .dash-hero-title{font-size:1.3rem;}
+
+    /* Stat cards: 2 per row */
+    .stats-grid{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+    .stat-val{font-size:1.3rem;}
+    .stat-card{padding:14px;}
+
+    /* Two-col panel sub-grid: stack */
+    .dash-two-col{grid-template-columns:1fr !important;}
+
+    /* Dash table: hide less-important columns on very small screens */
+    .dash-table th:nth-child(3),
+    .dash-table td:nth-child(3){display:none;}
+    .dash-table th, .dash-table td{padding:10px 10px;font-size:.78rem;}
+
+    /* Quick actions: display as 2-col grid */
+    .qa-pos-link { display: none; }  /* hide POS on mobile */
+    .qa-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+    .qa-link{margin-bottom:0;border-radius:12px;padding:12px 10px;gap:8px;flex-direction:column;align-items:center;text-align:center;}
+    .qa-link:hover{transform:none;}
+    .qa-arrow{display:none;}
+    .qa-icon{width:44px;height:44px;}
+    .qa-text strong{font-size:.76rem;}
+    .qa-text span{display:none;}
+
+    /* Charts */
+    .chart-panel{padding:16px;margin-top:16px;border-radius:14px;}
+    .chart-head{flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:16px;}
+    .chart-tabs .chart-tab{padding:6px 10px;font-size:.7rem;}
+}
 </style>
 
 {{-- Hero Banner --}}
@@ -247,7 +283,7 @@
             </table>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="dash-two-col" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
             {{-- Inventory Health --}}
             <div class="panel">
                 <div class="panel-head">
@@ -346,7 +382,8 @@
         {{-- Quick Actions --}}
         <div style="font-size:.68rem;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin:0 0 12px;">Quick Actions</div>
 
-        <a href="{{ route('pos.index') }}" class="qa-link">
+        <div class="qa-grid">
+        <a href="{{ route('pos.index') }}" class="qa-link qa-pos-link">
             <div class="qa-icon yellow">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
             </div>
@@ -385,6 +422,7 @@
             <div class="qa-text"><strong>Reports</strong><span>Sales & analytics</span></div>
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" class="qa-arrow"><polyline points="9 18 15 12 9 6"/></svg>
         </a>
+        </div>
     </div>
 </div>
 
