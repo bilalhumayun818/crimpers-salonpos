@@ -536,6 +536,27 @@
             .top-header-user span { display: none; }
             .top-header-user { padding: 4px; border-radius: 50%; }
         }
+
+        /* ─── Mobile Restriction: hide navigation chrome ─── */
+        @media(max-width: 768px) {
+            /* Hide sidebar entirely */
+            #appSidebar,
+            .sidebar {
+                display: none !important;
+            }
+            /* Hide sidebar toggle button */
+            #sidebarToggle {
+                display: none !important;
+            }
+            /* Hide backdrop */
+            #sidebar-backdrop {
+                display: none !important;
+            }
+            /* Hide panel navigation links (View All, View) */
+            .panel-link {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>

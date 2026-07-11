@@ -148,6 +148,15 @@
     .chart-head{flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:16px;}
     .chart-tabs .chart-tab{padding:6px 10px;font-size:.7rem;}
 }
+
+/* ── Mobile Quick Action disabled state ── */
+@media(max-width: 768px) {
+    .qa-mobile-disabled {
+        opacity: 0.4;
+        cursor: default;
+        pointer-events: none;
+    }
+}
 </style>
 
 {{-- Hero Banner --}}
@@ -191,7 +200,7 @@
 
 {{-- Stat Cards --}}
 <div class="stats-grid">
-    <div class="stat-card yellow">
+    <a href="{{ route('invoices.index', ['period' => 'today', 'tab' => 'sales']) }}" class="stat-card yellow" style="text-decoration:none; color:inherit; display:block;">
         <div class="stat-top">
             <div>
                 <div class="stat-label">Today's Revenue</div>
@@ -202,8 +211,8 @@
                 <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
             </div>
         </div>
-    </div>
-    <div class="stat-card blue">
+    </a>
+    <a href="{{ route('appointments.index') }}" class="stat-card blue" style="text-decoration:none; color:inherit; display:block;">
         <div class="stat-top">
             <div>
                 <div class="stat-label">Appointments</div>
@@ -214,8 +223,8 @@
                 <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             </div>
         </div>
-    </div>
-    <div class="stat-card purple">
+    </a>
+    <a href="{{ route('staff.index') }}" class="stat-card purple" style="text-decoration:none; color:inherit; display:block;">
         <div class="stat-top">
             <div>
                 <div class="stat-label">Staff Present</div>
@@ -226,8 +235,8 @@
                 <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"/></svg>
             </div>
         </div>
-    </div>
-    <div class="stat-card orange">
+    </a>
+    <a href="{{ route('products.index') }}" class="stat-card orange" style="text-decoration:none; color:inherit; display:block;">
         <div class="stat-top">
             <div>
                 <div class="stat-label">Low Stock Items</div>
@@ -238,7 +247,7 @@
                 <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
             </div>
         </div>
-    </div>
+    </a>
 </div>
 
 {{-- Main Grid --}}
@@ -382,6 +391,14 @@
         {{-- Quick Actions --}}
         <div style="font-size:.68rem;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin:0 0 12px;">Quick Actions</div>
 
+        @php
+            $isMobileView = request()->header('Sec-CH-UA-Mobile') === '?1'
+                || (bool) preg_match(
+                    '/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile Safari/i',
+                    request()->userAgent() ?? ''
+                );
+        @endphp
+
         <div class="qa-grid">
         <a href="{{ route('pos.index') }}" class="qa-link qa-pos-link">
             <div class="qa-icon yellow">
@@ -391,37 +408,77 @@
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" class="qa-arrow"><polyline points="9 18 15 12 9 6"/></svg>
         </a>
 
+        @if($isMobileView)
+        <span class="qa-link qa-mobile-disabled">
+        @else
         <a href="{{ route('appointments.index') }}" class="qa-link">
+        @endif
             <div class="qa-icon blue">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             </div>
             <div class="qa-text"><strong>Appointments</strong><span>Schedule & manage</span></div>
+            @if(!$isMobileView)
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" class="qa-arrow"><polyline points="9 18 15 12 9 6"/></svg>
+            @endif
+        @if($isMobileView)
+        </span>
+        @else
         </a>
+        @endif
 
+        @if($isMobileView)
+        <span class="qa-link qa-mobile-disabled">
+        @else
         <a href="{{ route('staff.index') }}" class="qa-link">
+        @endif
             <div class="qa-icon slate">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"/></svg>
             </div>
             <div class="qa-text"><strong>Staff Management</strong><span>Attendance & performance</span></div>
+            @if(!$isMobileView)
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" class="qa-arrow"><polyline points="9 18 15 12 9 6"/></svg>
+            @endif
+        @if($isMobileView)
+        </span>
+        @else
         </a>
+        @endif
 
+        @if($isMobileView)
+        <span class="qa-link qa-mobile-disabled">
+        @else
         <a href="{{ route('products.index') }}" class="qa-link">
+        @endif
             <div class="qa-icon orange">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
             </div>
             <div class="qa-text"><strong>Inventory</strong><span>Products & stock levels</span></div>
+            @if(!$isMobileView)
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" class="qa-arrow"><polyline points="9 18 15 12 9 6"/></svg>
+            @endif
+        @if($isMobileView)
+        </span>
+        @else
         </a>
+        @endif
 
+        @if($isMobileView)
+        <span class="qa-link qa-mobile-disabled">
+        @else
         <a href="{{ route('reports.index') }}" class="qa-link">
+        @endif
             <div class="qa-icon yellow">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
             </div>
             <div class="qa-text"><strong>Reports</strong><span>Sales & analytics</span></div>
+            @if(!$isMobileView)
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" class="qa-arrow"><polyline points="9 18 15 12 9 6"/></svg>
+            @endif
+        @if($isMobileView)
+        </span>
+        @else
         </a>
+        @endif
         </div>
     </div>
 </div>

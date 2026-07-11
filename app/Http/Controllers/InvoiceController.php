@@ -52,7 +52,7 @@ class InvoiceController extends Controller
             return $this->expenseHistory($request);
         }
 
-        $query = Invoice::with(['customer', 'user', 'items.itemizable']);
+        $query = Invoice::with(['customer', 'user', 'staff', 'items.itemizable']);
 
         // Apply date range filter
         if ($request->filled('date_from') && $request->filled('date_to')) {
@@ -110,23 +110,43 @@ class InvoiceController extends Controller
 
         // Apply customer filter
         if ($request->filled('customer')) {
-            $query->where(function($q) use ($request) {
-                $q->whereHas('customer', function($sub) use ($request) {
-                    $sub->where('name', 'like', '%' . $request->customer . '%');
-                })->orWhere('customer_name', 'like', '%' . $request->customer . '%');
+            $searchTerm = $request->customer;
+            $customerIds = \App\Models\Customer::all()->filter(function($c) use ($searchTerm) {
+                return stripos($c->name, $searchTerm) !== false;
+            })->pluck('id');
+
+            $query->where(function($q) use ($customerIds, $searchTerm) {
+                if ($customerIds->isNotEmpty()) {
+                    $q->whereIn('customer_id', $customerIds);
+                } else {
+                    // Fallback to purely customer_name if no customer matched (so we don't accidentally match all if it's empty, though it's empty only if no match found)
+                    $q->where('customer_id', -1); // Force false condition for the relation
+                }
+                $q->orWhere('customer_name', 'like', '%' . $searchTerm . '%');
             });
         }
 
         // Apply customer phone filter
         if ($request->filled('customer_phone')) {
-            $query->whereHas('customer', function($q) use ($request) {
-                $q->where('phone', 'like', '%' . $request->customer_phone . '%');
-            });
+            $searchTerm = $request->customer_phone;
+            $customerIds = \App\Models\Customer::all()->filter(function($c) use ($searchTerm) {
+                return stripos($c->phone, $searchTerm) !== false;
+            })->pluck('id');
+            $query->whereIn('customer_id', $customerIds->isEmpty() ? [-1] : $customerIds);
         }
 
         // Apply invoice number filter
         if ($request->filled('invoice_no')) {
             $query->where('invoice_no', 'like', '%' . $request->invoice_no . '%');
+        }
+
+        // Apply staff filter
+        if ($request->filled('staff_name')) {
+            $searchTerm = $request->staff_name;
+            $staffIds = \App\Models\Staff::all()->filter(function($s) use ($searchTerm) {
+                return stripos($s->name, $searchTerm) !== false;
+            })->pluck('id');
+            $query->whereIn('staff_id', $staffIds->isEmpty() ? [-1] : $staffIds);
         }
 
         // Apply amount range filters
@@ -199,19 +219,19 @@ class InvoiceController extends Controller
      */
     public function show(Invoice $invoice)
     {
-        $invoice->load(['items.itemizable', 'customer', 'user']);
+        $invoice->load(['items.itemizable', 'customer', 'user', 'staff']);
         return view('invoices.history-detail', compact('invoice'));
     }
 
     public function historyShow(Invoice $invoice)
     {
-        $invoice->load(['items.itemizable', 'customer', 'user']);
+        $invoice->load(['items.itemizable', 'customer', 'user', 'staff']);
         return view('invoices.history-detail', compact('invoice'));
     }
 
     public function export(Request $request)
     {
-        $query = Invoice::with(['customer', 'user']);
+        $query = Invoice::with(['customer', 'user', 'staff']);
 
         // Apply same filters as index method
         if ($request->filled('date_from') && $request->filled('date_to')) {
@@ -269,16 +289,33 @@ class InvoiceController extends Controller
 
         // Apply customer filter
         if ($request->filled('customer')) {
-            $query->where(function($q) use ($request) {
-                $q->whereHas('customer', function($sub) use ($request) {
-                    $sub->where('name', 'like', '%' . $request->customer . '%');
-                })->orWhere('customer_name', 'like', '%' . $request->customer . '%');
+            $searchTerm = $request->customer;
+            $customerIds = \App\Models\Customer::all()->filter(function($c) use ($searchTerm) {
+                return stripos($c->name, $searchTerm) !== false;
+            })->pluck('id');
+
+            $query->where(function($q) use ($customerIds, $searchTerm) {
+                if ($customerIds->isNotEmpty()) {
+                    $q->whereIn('customer_id', $customerIds);
+                } else {
+                    $q->where('customer_id', -1);
+                }
+                $q->orWhere('customer_name', 'like', '%' . $searchTerm . '%');
             });
         }
 
         // Apply invoice number filter
         if ($request->filled('invoice_no')) {
             $query->where('invoice_no', 'like', '%' . $request->invoice_no . '%');
+        }
+
+        // Apply staff filter
+        if ($request->filled('staff_name')) {
+            $searchTerm = $request->staff_name;
+            $staffIds = \App\Models\Staff::all()->filter(function($s) use ($searchTerm) {
+                return stripos($s->name, $searchTerm) !== false;
+            })->pluck('id');
+            $query->whereIn('staff_id', $staffIds->isEmpty() ? [-1] : $staffIds);
         }
 
         // Apply amount range filters
@@ -312,6 +349,7 @@ class InvoiceController extends Controller
                 'Invoice #',
                 'Date',
                 'Customer',
+                'Employee',
                 'Total Amount',
                 'Payment Method',
                 'Status',
@@ -324,6 +362,7 @@ class InvoiceController extends Controller
                     $invoice->invoice_no,
                     $invoice->created_at->format('Y-m-d H:i:s'),
                     $invoice->customer ? $invoice->customer->name : ($invoice->customer_name ?? 'Walk-in Customer'),
+                    $invoice->staff ? $invoice->staff->name : '-',
                     number_format($invoice->payable_amount, 2),
                     $invoice->payment_method,
                     $invoice->status,

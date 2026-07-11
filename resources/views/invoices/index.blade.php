@@ -38,7 +38,7 @@
 .filter-panel{background:#fff;border:1px solid #f0e8a0;border-radius:14px;padding:18px 20px;margin-bottom:18px;box-shadow:0 1px 4px rgba(0,0,0,.04);}
 .filter-title{font-size:.78rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.09em;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
 .filter-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;}
-.filter-grid-2{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.filter-grid-2{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
 .f-label{display:block;font-size:.75rem;font-weight:600;color:#374151;margin-bottom:5px;}
 .f-input{width:100%;padding:8px 11px;border:1.5px solid #e5e7eb;border-radius:9px;font-size:.82rem;font-family:'Outfit',sans-serif;color:#1e293b;background:#fafafa;outline:none;transition:.2s;}
 .f-input:focus{border-color:#F7DF79;background:#fff;box-shadow:0 0 0 3px rgba(247,223,121,.1);}
@@ -184,8 +184,10 @@
         </div>
         <form method="GET" action="{{ route('invoices.index') }}">
             <input type="hidden" name="tab" value="sales">
+            <input type="hidden" name="filter_applied" value="1">
             <div class="toggle-group-wrap">
-                <input type="checkbox" name="group_by_date" value="1" {{ request('group_by_date') ? 'checked' : '' }} onchange="this.form.submit()" id="group-toggle">
+                @php $isGrouped = request()->has('filter_applied') ? request('group_by_date') : true; @endphp
+                <input type="checkbox" name="group_by_date" value="1" {{ $isGrouped ? 'checked' : '' }} onchange="this.form.submit()" id="group-toggle">
                 <label for="group-toggle" class="toggle-label-text">Group by Date (Accordion View)</label>
             </div>
             <div class="filter-grid">
@@ -240,6 +242,10 @@
                     <label class="f-label">Invoice #</label>
                     <input type="text" name="invoice_no" value="{{ request('invoice_no') }}" class="f-input" placeholder="e.g. INV-ABC123">
                 </div>
+                <div>
+                    <label class="f-label">Employee Name</label>
+                    <input type="text" name="staff_name" value="{{ request('staff_name') }}" class="f-input" placeholder="Search employee…">
+                </div>
             </div>
             <div class="filter-footer">
                 <a href="{{ route('invoices.index', ['tab' => 'sales']) }}" class="btn-clear">Reset</a>
@@ -248,7 +254,7 @@
         </form>
     </div>
 
-    @if(request('group_by_date'))
+    @if($isGrouped)
         @foreach($invoices->groupBy(function($inv){ return $inv->created_at->format('Y-m-d'); }) as $date => $dailyInvoices)
         <div class="date-group">
             <div class="date-header" onclick="this.parentElement.classList.toggle('active')">
@@ -270,7 +276,16 @@
                         <tr>
                             <td style="width:120px;"><span class="inv-no">{{ $invoice->invoice_no }}</span></td>
                             <td>
+                                <div style="font-weight:600;color:#1e293b;">
                                     {{ $invoice->customer ? $invoice->customer->name : ($invoice->customer_name ?? 'Walk-in Customer') }}
+                                </div>
+                                @if($invoice->customer && $invoice->customer->phone)
+                                <div style="font-size:0.75rem; color:#64748b;">
+                                    {{ $invoice->customer->phone }}
+                                </div>
+                                @endif
+                                <div style="font-size:0.75rem; color:#64748b; margin-top:2px;">
+                                    By: {{ $invoice->staff ? $invoice->staff->name : '-' }}
                                 </div>
                             </td>
                             <td style="font-weight:800;color:#c9a800; text-align:right;">PKR {{ number_format($invoice->payable_amount, 2) }}</td>
@@ -295,6 +310,7 @@
                         <th>Invoice #</th>
                         <th>Date & Time</th>
                         <th>Customer</th>
+                        <th>Employee</th>
                         <th>Total Sales</th>
                         <th>Total Cost</th>
                         <th>Profit</th>
@@ -319,6 +335,16 @@
                             <div style="font-weight:600;color:#1e293b;">
                                 {{ $invoice->customer ? $invoice->customer->name : ($invoice->customer_name ?? 'Walk-in Customer') }}
                             </div>
+                            @if($invoice->customer && $invoice->customer->phone)
+                            <div style="font-size:0.75rem; color:#64748b;">
+                                {{ $invoice->customer->phone }}
+                            </div>
+                            @endif
+                        </td>
+                        <td>
+                            <div style="font-weight:600;color:#1e293b;font-size:0.85rem;">
+                                {{ $invoice->staff ? $invoice->staff->name : '-' }}
+                            </div>
                         </td>
                         <td style="font-weight:800;color:#c9a800;">PKR {{ number_format($invoice->payable_amount, 2) }}</td>
                         <td style="font-weight:600;color:#64748b;">PKR {{ number_format($totalCost, 2) }}</td>
@@ -330,7 +356,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="9" class="empty-state">No sales records found.</td></tr>
+                    <tr><td colspan="10" class="empty-state">No sales records found.</td></tr>
                     @endforelse
                 </tbody>
             </table>

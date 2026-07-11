@@ -212,7 +212,8 @@
                     <div class="act-row">
                         <div class="act-icon"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
                         <div class="act-info">
-                            <div class="act-name">{{ $appt->service->name }}</div>
+                            <div class="act-name">{{ $appt->service ? $appt->service->name : 'Service/Package' }}</div>
+                            <div class="act-meta" style="color:var(--ydark);">By: {{ $appt->staff ? $appt->staff->name : '-' }}</div>
                             <div class="act-meta">{{ $appt->appointment_date->format('M d, Y') }} &middot; {{ $appt->start_time->format('g:i A') }}</div>
                         </div>
                         <div class="act-right">
@@ -240,6 +241,7 @@
                         <div class="act-icon"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
                         <div class="act-info">
                             <div class="act-name">{{ $inv->invoice_no }}</div>
+                            <div class="act-meta" style="color:var(--ydark);">By: {{ $inv->staff ? $inv->staff->name : '-' }}</div>
                             <div class="act-meta" style="color: #64748b; font-weight: 500; margin: 3px 0; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ $inv->items ? implode(', ', $inv->items->pluck('custom_name')->toArray()) : '' }}">
                                 @if($inv->items && $inv->items->count())
                                     {{ implode(', ', $inv->items->pluck('custom_name')->toArray()) }}

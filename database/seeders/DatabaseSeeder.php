@@ -32,24 +32,56 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->command->info('Starting database seeding process...');
+
         DB::transaction(function () {
+            $this->command->info('Seeding Branches...');
             $branch = $this->seedBranches();
+            
+            $this->command->info('Seeding Users...');
             $admin = $this->seedUsers($branch);
+            
+            $this->command->info('Seeding Roles...');
             $roles = $this->seedRoles($branch);
+            
+            $this->command->info('Seeding Categories...');
             $categories = $this->seedCategories($branch);
+            
+            $this->command->info('Seeding Suppliers...');
             $suppliers = $this->seedSuppliers($branch);
+            
+            $this->command->info('Seeding Products...');
             $products = $this->seedProducts($branch, $categories, $suppliers);
+            
+            $this->command->info('Seeding Services...');
             $services = $this->seedServices($branch, $categories);
+            
+            $this->command->info('Seeding Packages...');
             $packages = $this->seedPackages($branch, $services);
+            
+            $this->command->info('Seeding Staff...');
             $staff = $this->seedStaff($branch, $roles, $services);
+            
+            $this->command->info('Seeding Customers...');
             $customers = $this->seedCustomers($branch);
 
+            $this->command->info('Seeding Purchases...');
             $this->seedPurchases($branch, $suppliers, $products);
+            
+            $this->command->info('Seeding Invoices...');
             $this->seedInvoices($branch, $admin, $customers, $staff, $products, $services, $packages);
+            
+            $this->command->info('Seeding Appointments...');
             $this->seedAppointments($branch, $customers, $staff, $services, $packages);
+            
+            $this->command->info('Seeding Report Data...');
             $this->seedReportData($branch, $staff, $products, $services);
+            
+            $this->command->info('Seeding Expenses...');
             $this->seedExpenses($branch, $admin);
         });
+
+        $this->command->info('Database seeding completed successfully!');
     }
 
     private function saveModel(string $class, int $id, array $attributes): Model
