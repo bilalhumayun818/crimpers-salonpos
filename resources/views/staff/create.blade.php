@@ -351,22 +351,36 @@
                                 placeholder="e.g. Ahmed Khan">
                         </div>
                         <div class="f-group">
-                            <label class="f-label">Email Address <span>(optional)</span></label>
-                            <input type="email" name="email" value="{{ old('email') }}" class="f-input"
-                                placeholder="staff@example.com">
+                            <label class="f-label">Date of Birth <span>*</span></label>
+                            <input type="date" name="date_of_birth" value="{{ old('date_of_birth') }}" required class="f-input">
                         </div>
                     </div>
                     <div class="f-grid-2">
                         <div class="f-group">
-                            <label class="f-label">Phone Number</label>
-                            <input type="text" name="phone" value="{{ old('phone') }}" class="f-input"
+                            <label class="f-label">Phone Number <span>*</span></label>
+                            <input type="text" name="phone" value="{{ old('phone') }}" required class="f-input"
                                 placeholder="+92 300 0000000">
                         </div>
                         <div class="f-group">
-                            <label class="f-label">Bio <span>(optional)</span></label>
-                            <input type="text" name="bio" value="{{ old('bio') }}" class="f-input"
-                                placeholder="Short description...">
+                            <label class="f-label">Emergency Number <span>*</span></label>
+                            <input type="text" name="emergency_number" value="{{ old('emergency_number') }}" required class="f-input"
+                                placeholder="+92 300 0000000">
                         </div>
+                    </div>
+                    <div class="f-grid-2">
+                        <div class="f-group">
+                            <label class="f-label">CNIC <span>*</span></label>
+                            <input type="text" name="cnic" value="{{ old('cnic') }}" required class="f-input"
+                                placeholder="e.g. 12345-6789012-3">
+                        </div>
+                        <div class="f-group">
+                            <label class="f-label">Monthly Salary (PKR) <span>*</span></label>
+                            <input type="number" name="salary" value="{{ old('salary', 0) }}" min="0" step="0.01" required class="f-input" placeholder="e.g. 30000">
+                        </div>
+                    </div>
+                    <div class="f-group" style="margin-top:16px;">
+                        <label class="f-label">Home Address <span>*</span></label>
+                        <textarea name="address" required class="f-textarea" placeholder="Enter complete home address...">{{ old('address') }}</textarea>
                     </div>
                 </div>
             </div>
@@ -426,101 +440,6 @@
                 </div>
             </div>
 
-            {{-- Employment Details --}}
-            <div class="form-card">
-                <div class="form-card-head">
-                    <div class="form-card-head-icon">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"
-                            viewBox="0 0 24 24">
-                            <rect x="2" y="7" width="20" height="14" rx="2" />
-                            <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
-                        </svg>
-                    </div>
-                    <span class="form-card-head-title">Employment Details</span>
-                </div>
-                <div class="form-card-body">
-                    <div class="f-grid-3">
-                        <div class="f-group">
-                            <label class="f-label">Joining Date</label>
-                            <input type="date" name="hiring_date" value="{{ old('hiring_date', date('Y-m-d')) }}"
-                                class="f-input">
-                        </div>
-                        <div class="f-group">
-                            <label class="f-label">Shift Start <span>*</span></label>
-                            <input type="time" name="shift_start" value="{{ old('shift_start', $currentBranch?->opening_time ? \Carbon\Carbon::parse($currentBranch->opening_time)->format('H:i') : '') }}" required class="f-input">
-                        </div>
-                        <div class="f-group">
-                            <label class="f-label">Shift End <span>*</span></label>
-                            <input type="time" name="shift_end" value="{{ old('shift_end', $currentBranch?->closing_time ? \Carbon\Carbon::parse($currentBranch->closing_time)->format('H:i') : '') }}" required class="f-input">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Compensation --}}
-            <div class="form-card">
-                <div class="form-card-head">
-                    <div class="form-card-head-icon">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
-                        </svg>
-                    </div>
-                    <span class="form-card-head-title">Compensation & Commission</span>
-                </div>
-                <div class="form-card-body">
-                    <div class="f-grid-3">
-                        <div class="f-group">
-                            <label class="f-label">Base Salary <span>(PKR / month)</span></label>
-                            <input type="number" name="base_salary" value="{{ old('base_salary', 0) }}" min="0" step="0.01" class="f-input" placeholder="e.g. 25000">
-                        </div>
-                        <div class="f-group">
-                            <label class="f-label">Comm. per Customer <span>(%)</span></label>
-                            <input type="number" name="commission_per_customer" value="{{ old('commission_per_customer', 0) }}" min="0" max="100" step="0.01" class="f-input" placeholder="e.g. 5">
-                        </div>
-                        <div class="f-group">
-                            <label class="f-label">Comm. per Service <span>(%)</span></label>
-                            <input type="number" name="commission_per_service" value="{{ old('commission_per_service', 0) }}" min="0" max="100" step="0.01" class="f-input" placeholder="e.g. 10">
-                        </div>
-                    </div>
-                    <p style="margin-top:10px; font-size:.78rem; color:#94a3b8;">
-                        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                        Total pay = Base Salary + (% Commission per Customer served) + (% Commission per Service performed).
-                    </p>
-                </div>
-            </div>
-
-            {{-- Services --}}
-            @if($services->count())
-                <div class="form-card">
-                    <div class="form-card-head" style="display: flex; justify-content: space-between; align-items: center;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div class="form-card-head-icon">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"
-                                    viewBox="0 0 24 24">
-                                    <path
-                                        d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
-                                </svg>
-                            </div>
-                            <span class="form-card-head-title">Assigned Services</span>
-                        </div>
-                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 700; color: #1e293b;">
-                            <input type="checkbox" id="select-all-services" style="width: 16px; height: 16px; accent-color: var(--yd); cursor: pointer;">
-                            Select All
-                        </label>
-                    </div>
-                    <div class="form-card-body">
-                        <div class="services-grid">
-                            @foreach($services as $service)
-                                <label class="service-check">
-                                    <input type="checkbox" name="service_ids[]" value="{{ $service->id }}" class="individual-service-check">
-                                    <span>{{ $service->name }}</span>
-                                </label>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-            @endif
-
             {{-- Actions --}}
             <div class="form-actions">
                 <a href="{{ route('staff.index') }}" class="btn-cancel">Cancel</a>
@@ -536,27 +455,4 @@
             </div>
         </form>
     </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const selectAll = document.getElementById('select-all-services');
-            const serviceChecks = document.querySelectorAll('.individual-service-check');
-            
-            if (selectAll) {
-                // When "Select All" is clicked
-                selectAll.addEventListener('change', function() {
-                    serviceChecks.forEach(cb => {
-                        cb.checked = selectAll.checked;
-                    });
-                });
-
-                // Update "Select All" state if user manually toggles individual checkboxes
-                serviceChecks.forEach(cb => {
-                    cb.addEventListener('change', function() {
-                        const allChecked = Array.from(serviceChecks).every(c => c.checked);
-                        selectAll.checked = allChecked;
-                    });
-                });
-            }
-        });
-    </script>
 @endsection

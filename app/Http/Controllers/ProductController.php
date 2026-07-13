@@ -147,7 +147,14 @@ class ProductController extends Controller
 
     public function show(Product $product)
     {
-        $product->load(['category', 'supplier', 'productUsages.service', 'purchaseItems.purchase']);
+        $product->load([
+            'category', 
+            'supplier', 
+            'productUsages.service',
+            'productUsages.invoice',
+            'purchaseItems.purchase.supplier',
+            'invoiceItems.invoice'
+        ]);
 
         return view('products.show', compact('product'));
     }

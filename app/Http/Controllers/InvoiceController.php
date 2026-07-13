@@ -442,7 +442,7 @@ class InvoiceController extends Controller
     public function expenseHistory(Request $request)
     {
         $user = auth()->user();
-        $query = Expense::with('user');
+        $query = Expense::with('user', 'staff');
 
         if ($request->filled('date_from') && $request->filled('date_to')) {
             $query->whereDate('created_at', '>=', $request->date_from)
@@ -453,6 +453,10 @@ class InvoiceController extends Controller
             $query->where('deducted_from_drawer', $request->deducted_from_drawer);
         }
 
+        if ($request->filled('expense_type')) {
+            $query->where('expense_type', $request->expense_type);
+        }
+
         // Fetch all matching expenses so we can decrypt and filter in-memory
         $expensesCollection = $query->latest('created_at')->get();
 
@@ -461,8 +465,9 @@ class InvoiceController extends Controller
             $expensesCollection = $expensesCollection->filter(function($exp) use ($searchVal) {
                 $desc = strtolower($exp->description ?? '');
                 $userName = strtolower($exp->user->name ?? '');
+                $staffName = strtolower($exp->staff?->name ?? '');
                 
-                return str_contains($desc, $searchVal) || str_contains($userName, $searchVal);
+                return str_contains($desc, $searchVal) || str_contains($userName, $searchVal) || str_contains($staffName, $searchVal);
             });
         }
 

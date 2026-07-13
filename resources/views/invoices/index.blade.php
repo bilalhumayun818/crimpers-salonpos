@@ -560,6 +560,15 @@
                     <input type="text" name="search" value="{{ request('search') }}" class="f-input" placeholder="e.g. tea, ali, salary, rent...">
                 </div>
                 <div>
+                    <label class="f-label">Expense Type</label>
+                    <select name="expense_type" class="f-input">
+                        <option value="">All Types</option>
+                        <option value="daily" {{ request('expense_type') === 'daily' ? 'selected' : '' }}>Daily</option>
+                        <option value="fixed" {{ request('expense_type') === 'fixed' ? 'selected' : '' }}>Fixed</option>
+                        <option value="staff" {{ request('expense_type') === 'staff' ? 'selected' : '' }}>Staff</option>
+                    </select>
+                </div>
+                <div>
                     <label class="f-label">Deducted from Drawer</label>
                     <select name="deducted_from_drawer" class="f-input">
                         <option value="">All Expenses</option>
@@ -592,9 +601,12 @@
             <thead>
                 <tr>
                     <th>Date</th>
-                    <th>Recorded By</th>
+                    <th>Type</th>
+                    <th>Category</th>
                     <th>Description</th>
-                    <th>Deducted From Drawer</th>
+                    <th>Staff</th>
+                    <th>Recorded By</th>
+                    <th>Drawer</th>
                     <th>Amount</th>
                 </tr>
             </thead>
@@ -602,8 +614,28 @@
                 @forelse($expenses as $exp)
                 <tr>
                     <td style="font-weight:700; color:#1e293b;">{{ $exp->created_at->format('M d, Y h:i A') }}</td>
+                    <td>
+                        @if($exp->expense_type === 'daily')
+                            <span class="pill" style="background:#dbeafe;color:#0284c7;display:inline-flex;align-items:center;gap:5px;">
+                                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                                Daily
+                            </span>
+                        @elseif($exp->expense_type === 'fixed')
+                            <span class="pill" style="background:#fef3c7;color:#b45309;display:inline-flex;align-items:center;gap:5px;">
+                                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 1 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                                Fixed
+                            </span>
+                        @else
+                            <span class="pill" style="background:#f3e8ff;color:#7c3aed;display:inline-flex;align-items:center;gap:5px;">
+                                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></svg>
+                                Staff
+                            </span>
+                        @endif
+                    </td>
+                    <td style="font-size:.85rem;color:#64748b;">{{ $exp->category ? ucfirst(str_replace('_', ' ', $exp->category)) : '—' }}</td>
+                    <td style="font-size:.9rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;">{{ $exp->description ?: '—' }}</td>
+                    <td>{{ $exp->staff?->name ?? '—' }}</td>
                     <td>{{ $exp->user->name ?? 'System' }}</td>
-                    <td>{{ $exp->description }}</td>
                     <td>
                         @if($exp->deducted_from_drawer)
                             <span class="pill pill-amber">Yes</span>
@@ -614,7 +646,7 @@
                     <td style="font-weight:800; color:#ef4444;">PKR {{ number_format($exp->amount, 2) }}</td>
                 </tr>
                 @empty
-                <tr><td colspan="5" class="empty-state">No expense records found.</td></tr>
+                <tr><td colspan="8" class="empty-state">No expense records found.</td></tr>
                 @endforelse
             </tbody>
         </table>

@@ -96,29 +96,33 @@
 
         .staff-card {
             background: #fff;
-            border: 1px solid #e9e0c0;
+            border: 1.5px solid #e9e0c0;
             border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 1px 4px rgba(199, 168, 0, .08);
-            transition: .2s;
+            box-shadow: 0 2px 8px rgba(199, 168, 0, .06);
+            transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
         }
 
         .staff-card:hover {
-            box-shadow: 0 6px 20px rgba(199, 168, 0, .15);
-            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(199, 168, 0, .15);
+            transform: translateY(-4px);
+            border-color: #c9a800;
         }
 
         .staff-card-head {
-            padding: 16px;
-            border-bottom: 1px solid #f5efc8;
+            padding: 18px;
+            background: linear-gradient(135deg, rgba(247, 223, 121, 0.05), rgba(201, 168, 0, 0.03));
+            border-bottom: 1.5px solid #f5efc8;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
         }
 
         .staff-avatar {
-            width: 50px;
-            height: 50px;
+            width: 56px;
+            height: 56px;
             border-radius: 12px;
             background: linear-gradient(135deg, var(--y1), var(--yd));
             display: flex;
@@ -126,25 +130,31 @@
             justify-content: center;
             color: #18181b;
             font-weight: 800;
-            font-size: 1.25rem;
+            font-size: 1.4rem;
             flex-shrink: 0;
+            box-shadow: 0 3px 10px rgba(201, 168, 0, .2);
         }
 
         .staff-info h3 {
-            font-size: .95rem;
-            font-weight: 700;
-            color: #1e293b;
-            margin: 0;
+            font-size: 1rem;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0 0 4px;
+            letter-spacing: -.01em;
         }
 
         .staff-info p {
             font-size: .8rem;
-            color: #94a3b8;
+            color: #64748b;
             margin: 2px 0 0;
         }
 
         .staff-card-body {
-            padding: 12px 16px;
+            padding: 16px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
 
         .stat-row {
@@ -152,19 +162,17 @@
             justify-content: space-between;
             align-items: center;
             font-size: .8rem;
-            margin-bottom: 8px;
-            padding-bottom: 8px;
+            padding: 8px 0;
             border-bottom: 1px solid #faf6e8;
         }
 
         .stat-row:last-child {
             border-bottom: none;
-            margin-bottom: 0;
-            padding-bottom: 0;
         }
 
         .stat-label {
             color: #64748b;
+            font-weight: 500;
         }
 
         .stat-value {
@@ -173,35 +181,39 @@
         }
 
         .status-badge {
-            display: inline-block;
-            padding: 3px 10px;
+            display: inline-flex;
+            padding: 4px 12px;
             border-radius: 99px;
-            font-size: .7rem;
+            font-size: .75rem;
             font-weight: 700;
+            width: fit-content;
         }
 
         .status-active {
-            background: var(--y2);
-            color: var(--yk);
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #d1fae5;
         }
 
         .status-inactive {
-            background: #fecaca;
-            color: #7f1d1d;
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fee2e2;
         }
 
         .staff-card-foot {
-            padding: 12px 16px;
-            border-top: 1px solid #f5efc8;
+            padding: 14px 16px;
+            border-top: 1.5px solid #f5efc8;
             display: flex;
-            gap: 8px;
+            gap: 10px;
+            background: #fafaf9;
         }
 
         .btn-sm {
             flex: 1;
-            padding: 7px 10px;
-            border: 1px solid #e2e8f0;
-            background: #f4f4f5;
+            padding: 8px 12px;
+            border: 1.5px solid #e2e8f0;
+            background: #fff;
             border-radius: 8px;
             color: #18181b;
             font-size: .75rem;
@@ -209,24 +221,24 @@
             text-decoration: none;
             cursor: pointer;
             text-align: center;
-            transition: .2s;
+            transition: all .2s;
             font-family: 'Outfit', sans-serif;
         }
 
         .btn-sm:hover {
-            background: #e4e4e7;
-            border-color: #d4d4d8;
+            background: #f4f4f5;
+            border-color: #c9a800;
             color: #18181b;
         }
 
         .btn-sm-del {
-            background: #fff;
-            border-color: #fca5a5;
+            background: #fef2f2;
+            border-color: #fecaca;
             color: #ef4444;
         }
 
         .btn-sm-del:hover {
-            background: #fef2f2;
+            background: #fee2e2;
             border-color: #f87171;
             color: #dc2626;
         }
@@ -296,32 +308,21 @@
 
                     <div class="staff-card-body">
                         <div class="stat-row">
-                            <span class="stat-label">Hired</span>
+                            <span class="stat-label">Phone</span>
+                            <span class="stat-value">{{ substr($member->phone, 0, 10) }}...</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Salary</span>
+                            <span class="stat-value">PKR {{ number_format($member->salary, 0) }}/mo</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">CNIC</span>
+                            <span class="stat-value">{{ substr($member->cnic, 0, 8) }}...</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Joined</span>
                             <span class="stat-value">{{ $member->hiring_date->format('M Y') }}</span>
                         </div>
-                        <div class="stat-row">
-                            <span class="stat-label">Base Salary</span>
-                            <span class="stat-value">PKR {{ number_format($member->base_salary, 0) }}/mo</span>
-                        </div>
-                        <div class="stat-row">
-                            <span class="stat-label">Comm. / Customer</span>
-                            <span class="stat-value">{{ number_format($member->commission_per_customer, 1) }}%</span>
-                        </div>
-                        <div class="stat-row">
-                            <span class="stat-label">Comm. / Service</span>
-                            <span class="stat-value">{{ number_format($member->commission_per_service, 1) }}%</span>
-                        </div>
-                        <div class="stat-row">
-                            <span class="stat-label">This Month Hours</span>
-                            <span
-                                class="stat-value">{{ rtrim(rtrim(number_format($member->attendances()->whereYear('attendance_date', now()->year)->whereMonth('attendance_date', now()->month)->count() * $member->shift_duration_hours, 2), '0'), '.') }}h</span>
-                        </div>
-                        @if($member->upsellPerformance)
-                            <div class="stat-row">
-                                <span class="stat-label">Upsells</span>
-                                <span class="stat-value">{{ $member->upsellPerformance->total_upsells }}</span>
-                            </div>
-                        @endif
                         <div class="stat-row">
                             <span class="stat-label">Status</span>
                             <span class="status-badge {{ $member->status ? 'status-active' : 'status-inactive' }}">

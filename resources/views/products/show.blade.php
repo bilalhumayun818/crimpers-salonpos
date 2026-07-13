@@ -39,6 +39,29 @@
 .istat{text-align:center;padding:14px 10px;background:var(--ybg);border-radius:11px;border:1px solid #f0e8a0;}
 .istat-val{font-size:1.4rem;font-weight:800;color:var(--ydark);margin-bottom:3px;}
 .istat-lbl{font-size:.65rem;font-weight:700;color:#a1a1aa;text-transform:uppercase;letter-spacing:.07em;}
+
+.tbl-card{background:#fff;border:1.5px solid #f0e8a0;border-radius:14px;padding:18px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,.04);}
+.tbl-title{font-size:.78rem;font-weight:700;color:#a1a1aa;text-transform:uppercase;letter-spacing:.09em;margin-bottom:14px;display:flex;align-items:center;gap:7px;}
+.tbl-title-icon{width:24px;height:24px;border-radius:7px;background:var(--y2);display:flex;align-items:center;justify-content:center;color:var(--ydark);}
+
+.tbl-container{overflow-x:auto;}
+.tbl-main{width:100%;border-collapse:collapse;font-size:.82rem;}
+.tbl-main thead{background:var(--ybg);border-bottom:2px solid var(--y1);}
+.tbl-main th{padding:12px 14px;text-align:left;font-weight:700;color:var(--ydark);letter-spacing:.03em;font-size:.75rem;text-transform:uppercase;}
+.tbl-main tbody tr{border-bottom:1px solid #f4f4f5;transition:.12s;}
+.tbl-main tbody tr:hover{background:#fafaf5;}
+.tbl-main td{padding:11px 14px;color:#52525b;}
+.tbl-main .tbl-date{color:#a1a1aa;font-size:.77rem;}
+.tbl-main .tbl-qty{font-weight:700;color:var(--ydark);}
+.tbl-main .tbl-price{color:#16a34a;font-weight:600;}
+.tbl-main .tbl-name{font-weight:600;color:#18181b;}
+.tbl-main .tbl-status{padding:4px 10px;border-radius:6px;font-size:.72rem;font-weight:700;display:inline-block;}
+.status-received{background:#dcfce7;color:#166534;}
+.status-pending{background:#fef3c7;color:#92400e;}
+.status-partial{background:#fed7aa;color:#92400e;}
+
+.empty-state{text-align:center;padding:40px 20px;color:#a1a1aa;}
+.empty-icon{font-size:2rem;margin-bottom:10px;opacity:.5;}
 </style>
 
 <div class="pg-header">
@@ -129,7 +152,7 @@
             <div class="istat-lbl">Min Level</div>
         </div>
         <div class="istat">
-            <div class="istat-val">0</div>
+            <div class="istat-val">{{ $product->productUsages()->sum('quantity_used') }}</div>
             <div class="istat-lbl">Total Used</div>
         </div>
         <div class="istat">
@@ -137,5 +160,146 @@
             <div class="istat-lbl">Tracking</div>
         </div>
     </div>
+</div>
+
+<!-- USAGE HISTORY TABLE -->
+@if($product->product_type !== 'retail')
+<div class="tbl-card">
+    <div class="tbl-title">
+        <div class="tbl-title-icon"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2"/></svg></div>
+        Usage History (Shop Use)
+    </div>
+    @if($product->productUsages->count() > 0)
+        <div class="tbl-container">
+            <table class="tbl-main">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Service</th>
+                        <th>Customer</th>
+                        <th>Qty Used</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($product->productUsages()->latest()->get() as $usage)
+                    <tr>
+                        <td class="tbl-date">{{ $usage->usage_date?->format('M d, Y') ?: '—' }}</td>
+                        <td class="tbl-name">{{ $usage->service?->name ?? '—' }}</td>
+                        <td>{{ $usage->invoice?->customer_name ?? '—' }}</td>
+                        <td class="tbl-qty">{{ $usage->quantity_used }}</td>
+                        <td>{{ $usage->notes ?: '—' }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @else
+        <div class="empty-state">
+            <div class="empty-icon">📊</div>
+            <p>No usage history yet</p>
+        </div>
+    @endif
+</div>
+@else
+<!-- SALES/CUSTOMER USAGE HISTORY FOR RETAIL PRODUCTS -->
+<div class="tbl-card">
+    <div class="tbl-title">
+        <div class="tbl-title-icon"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M16 11a4 4 0 11-8 0 4 4 0 018 0z"/></svg></div>
+        Customer Purchases
+    </div>
+    @php
+        $sales = $product->invoiceItems()
+            ->with('invoice', 'invoice.customer')
+            ->latest('created_at')
+            ->get();
+    @endphp
+    @if($sales->count() > 0)
+        <div class="tbl-container">
+            <table class="tbl-main">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Customer</th>
+                        <th>Quantity</th>
+                        <th>Unit Price</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($sales as $item)
+                    @php
+                        $invoice = $item->invoice ?? null;
+                    @endphp
+                    <tr>
+                        <td class="tbl-date">{{ $invoice?->created_at?->format('M d, Y') ?: '—' }}</td>
+                        <td class="tbl-name">{{ $invoice?->customer_name ?? '—' }}</td>
+                        <td class="tbl-qty">{{ $item->quantity }}</td>
+                        <td class="tbl-price">PKR {{ number_format($product->selling_price, 2) }}</td>
+                        <td class="tbl-price"><strong>PKR {{ number_format($product->selling_price * $item->quantity, 2) }}</strong></td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @else
+        <div class="empty-state">
+            <div class="empty-icon">🛒</div>
+            <p>No customer purchases yet</p>
+        </div>
+    @endif
+</div>
+@endif
+
+<!-- PURCHASE/INVENTORY HISTORY TABLE -->
+<div class="tbl-card">
+    <div class="tbl-title">
+        <div class="tbl-title-icon"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+        Purchase & Inventory Adjustments
+    </div>
+    @php
+        $purchases = $product->purchaseItems()
+            ->with('purchase', 'purchase.supplier')
+            ->latest('created_at')
+            ->get();
+    @endphp
+    @if($purchases->count() > 0)
+        <div class="tbl-container">
+            <table class="tbl-main">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Supplier</th>
+                        <th>Quantity</th>
+                        <th>Unit Cost</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($purchases as $item)
+                    @php
+                        $purchase = $item->purchase;
+                        $status = $purchase->status ?? 'pending';
+                        $statusClass = $status === 'received' ? 'status-received' : ($status === 'partial' ? 'status-partial' : 'status-pending');
+                    @endphp
+                    <tr>
+                        <td class="tbl-date">{{ $purchase->order_date?->format('M d, Y') ?: '—' }}</td>
+                        <td class="tbl-name">{{ $purchase->supplier?->name ?? '—' }}</td>
+                        <td class="tbl-qty">{{ $item->quantity_ordered }}</td>
+                        <td class="tbl-price">PKR {{ number_format($item->unit_cost, 2) }}</td>
+                        <td class="tbl-price"><strong>PKR {{ number_format($item->unit_cost * $item->quantity_ordered, 2) }}</strong></td>
+                        <td><span class="tbl-status {{ $statusClass }}">{{ ucfirst($status) }}</span></td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @else
+        <div class="empty-state">
+            <div class="empty-icon">📦</div>
+            <p>No purchase history yet</p>
+        </div>
+    @endif
 </div>
 @endsection

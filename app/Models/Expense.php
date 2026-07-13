@@ -12,10 +12,13 @@ class Expense extends Model
 
     protected $fillable = [
         'branch_id',
+        'expense_type',
+        'category',
         'description',
         'amount',
         'deducted_from_drawer',
-        'user_id'
+        'user_id',
+        'staff_id'
     ];
 
     protected $casts = [
@@ -32,5 +35,10 @@ class Expense extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function staff()
+    {
+        return $this->belongsTo(Staff::class);
     }
 }

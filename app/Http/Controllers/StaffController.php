@@ -36,34 +36,36 @@ class StaffController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'date_of_birth' => 'required|date',
+            'phone' => 'required|string',
+            'emergency_number' => 'required|string',
+            'cnic' => 'required|string',
+            'address' => 'required|string',
+            'salary' => 'required|numeric|min:0',
             'email' => 'nullable|email|unique:staff,email|unique:users,email',
             'password' => 'nullable|string|min:8|confirmed',
-            'phone' => 'nullable|string',
             'staff_role_id' => 'nullable|exists:staff_roles,id',
-            'hourly_rate' => 'nullable|numeric|min:0',
-            'base_salary' => 'nullable|numeric|min:0',
-            'commission_per_customer' => 'nullable|numeric|min:0',
-            'commission_per_service' => 'nullable|numeric|min:0',
-            'hiring_date' => 'nullable|date',
-            'shift_start' => 'required',
-            'shift_end' => 'required',
             'status' => 'nullable|boolean',
-            'bio' => 'nullable|string',
-            'service_ids' => 'nullable|array',
         ]);
 
-        $validated['hourly_rate'] = $validated['hourly_rate'] ?? 0;
-        $validated['base_salary'] = $validated['base_salary'] ?? 0;
-        $validated['commission_per_customer'] = $validated['commission_per_customer'] ?? 0;
-        $validated['commission_per_service'] = $validated['commission_per_service'] ?? 0;
+        $validated['hourly_rate'] = 0;
+        $validated['base_salary'] = 0;
+        $validated['commission_per_customer'] = 0;
+        $validated['commission_per_service'] = 0;
         $validated['total_earned_commission'] = 0;
         $validated['rating_total'] = 0;
         $validated['rating_count'] = 0;
-        $validated['hiring_date'] = $validated['hiring_date'] ?? now();
+        $validated['hiring_date'] = now();
         $validated['position'] = 'Employee';
+        $validated['shift_start'] = '00:00:00';
+        $validated['shift_end'] = '23:59:59';
 
         $staff = Staff::create($validated);
-        $staff->services()->sync($request->input('service_ids', []));
+        
+        // Assign all services to the employee by default
+        $services = \App\Models\Service::pluck('id')->toArray();
+        $staff->services()->sync($services);
+        
         UpsellPerformance::create(['staff_id' => $staff->id]);
 
         // Create a User login account ONLY if email and password are provided
@@ -112,30 +114,24 @@ class StaffController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'date_of_birth' => 'required|date',
+            'phone' => 'required|string',
+            'emergency_number' => 'required|string',
+            'cnic' => 'required|string',
+            'address' => 'required|string',
+            'salary' => 'required|numeric|min:0',
             'email' => 'nullable|email|unique:staff,email,' . $staff->id,
             'password' => 'nullable|string|min:8|confirmed',
-            'phone' => 'nullable|string',
             'staff_role_id' => 'nullable|exists:staff_roles,id',
-            'hourly_rate' => 'nullable|numeric|min:0',
-            'base_salary' => 'nullable|numeric|min:0',
-            'commission_per_customer' => 'nullable|numeric|min:0',
-            'commission_per_service' => 'nullable|numeric|min:0',
-            'hiring_date' => 'nullable|date',
-            'shift_start' => 'required',
-            'shift_end' => 'required',
             'status' => 'nullable|boolean',
-            'bio' => 'nullable|string',
-            'service_ids' => 'nullable|array',
         ]);
 
-        $validated['hourly_rate'] = $validated['hourly_rate'] ?? 0;
-        $validated['base_salary'] = $validated['base_salary'] ?? 0;
-        $validated['commission_per_customer'] = $validated['commission_per_customer'] ?? 0;
-        $validated['commission_per_service'] = $validated['commission_per_service'] ?? 0;
         $validated['status'] = $request->has('status');
-
         $staff->update($validated);
-        $staff->services()->sync($request->input('service_ids', []));
+        
+        // Ensure all services are assigned to the employee
+        $services = \App\Models\Service::pluck('id')->toArray();
+        $staff->services()->sync($services);
 
         // Sync the linked User login account (email + role + optional password)
         $user = User::where('email', $staff->getOriginal('email'))->first();
