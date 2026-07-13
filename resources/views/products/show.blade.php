@@ -163,7 +163,6 @@
 </div>
 
 <!-- USAGE HISTORY TABLE -->
-@if($product->product_type !== 'retail')
 <div class="tbl-card">
     <div class="tbl-title">
         <div class="tbl-title-icon"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2"/></svg></div>
@@ -177,6 +176,7 @@
                         <th>Date</th>
                         <th>Service</th>
                         <th>Customer</th>
+                        <th>Mobile Number</th>
                         <th>Qty Used</th>
                         <th>Notes</th>
                     </tr>
@@ -185,8 +185,9 @@
                     @foreach($product->productUsages()->latest()->get() as $usage)
                     <tr>
                         <td class="tbl-date">{{ $usage->usage_date?->format('M d, Y') ?: '—' }}</td>
-                        <td class="tbl-name">{{ $usage->service?->name ?? '—' }}</td>
+                        <td class="tbl-name">{{ $usage->service?->name ?? 'Direct Shop Issue' }}</td>
                         <td>{{ $usage->invoice?->customer_name ?? '—' }}</td>
+                        <td>{{ $usage->invoice?->customer?->phone ?: '—' }}</td>
                         <td class="tbl-qty">{{ $usage->quantity_used }}</td>
                         <td>{{ $usage->notes ?: '—' }}</td>
                     </tr>
@@ -201,7 +202,7 @@
         </div>
     @endif
 </div>
-@else
+@if($product->product_type === 'retail')
 <!-- SALES/CUSTOMER USAGE HISTORY FOR RETAIL PRODUCTS -->
 <div class="tbl-card">
     <div class="tbl-title">
@@ -221,6 +222,7 @@
                     <tr>
                         <th>Date</th>
                         <th>Customer</th>
+                        <th>Mobile Number</th>
                         <th>Quantity</th>
                         <th>Unit Price</th>
                         <th>Total</th>
@@ -234,6 +236,7 @@
                     <tr>
                         <td class="tbl-date">{{ $invoice?->created_at?->format('M d, Y') ?: '—' }}</td>
                         <td class="tbl-name">{{ $invoice?->customer_name ?? '—' }}</td>
+                        <td>{{ $invoice?->customer?->phone ?: '—' }}</td>
                         <td class="tbl-qty">{{ $item->quantity }}</td>
                         <td class="tbl-price">PKR {{ number_format($product->selling_price, 2) }}</td>
                         <td class="tbl-price"><strong>PKR {{ number_format($product->selling_price * $item->quantity, 2) }}</strong></td>
