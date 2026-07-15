@@ -255,10 +255,10 @@ class ProductController extends Controller
     public function adjustStock(Request $request, Product $product)
     {
         $validated = $request->validate([
-            'adjustment_type' => 'required|in:add,subtract,set',
+            'adjustment_type' => 'required|in:add,subtract',
             'quantity' => 'required|numeric|min:0',
             'reason' => 'required|string|max:255',
-            'cost_price' => 'required|numeric|min:0',
+            'cost_price' => 'nullable|numeric|min:0',
             'selling_price' => 'nullable|numeric|min:0',
         ]);
 
@@ -267,12 +267,16 @@ class ProductController extends Controller
         $oldCostPrice = $product->cost_price;
 
         DB::transaction(function() use ($validated, $product, $oldSellingPrice, $oldCostPrice) {
-            $newSellingPrice = $product->product_type === 'retail'
+            $newSellingPrice = $product->product_type === 'retail' && $validated['selling_price'] !== null
                 ? $validated['selling_price']
                 : $product->selling_price;
 
+            $newCostPrice = $validated['cost_price'] !== null
+                ? $validated['cost_price']
+                : $product->cost_price;
+
             $product->update([
-                'cost_price' => $validated['cost_price'],
+                'cost_price' => $newCostPrice,
                 'selling_price' => $newSellingPrice,
             ]);
 
@@ -321,9 +325,6 @@ class ProductController extends Controller
                     break;
                 case 'subtract':
                     $product->deductStock($validated['quantity']);
-                    break;
-                case 'set':
-                    $product->update(['current_stock' => $validated['quantity']]);
                     break;
             }
         });

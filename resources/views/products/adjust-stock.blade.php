@@ -42,7 +42,7 @@
 
 /* ── Type selector ── */
 .section-lbl{font-size:.65rem;font-weight:800;color:#a1a1aa;text-transform:uppercase;letter-spacing:.09em;margin-bottom:10px;}
-.type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px;}
+.type-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:20px;}
 .type-btn{padding:13px 8px;border-radius:12px;border:1.5px solid #e4e4e7;background:#f8fafc;font-size:.8rem;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;color:#64748b;transition:.18s;display:flex;flex-direction:column;align-items:center;gap:6px;}
 .type-btn svg{width:22px;height:22px;stroke-width:1.8;}
 .type-btn:hover{border-color:var(--y1);color:var(--ydark);background:var(--ybg);}
@@ -149,10 +149,6 @@
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
                     Remove
                 </button>
-                <button type="button" class="type-btn" data-type="set" onclick="selectType(this)">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    Set Value
-                </button>
             </div>
             <input type="hidden" name="adjustment_type" id="adjustment_type" value="add">
 
@@ -170,13 +166,13 @@
                     <div>
                         <label class="field-label" for="cost_price">New Cost Price</label>
                         <input type="number" name="cost_price" id="cost_price" class="field-input" min="0" step="0.01"
-                               value="{{ old('cost_price', $product->cost_price) }}" required>
+                               value="{{ old('cost_price') }}" placeholder="Leave blank to keep current price">
                     </div>
                     @if($product->product_type === 'retail')
                     <div>
                         <label class="field-label" for="selling_price">New Selling Price</label>
                         <input type="number" name="selling_price" id="selling_price" class="field-input" min="0" step="0.01"
-                               value="{{ old('selling_price', $product->selling_price) }}" required>
+                               value="{{ old('selling_price') }}" placeholder="Leave blank to keep current price">
                     </div>
                     @endif
                 </div>
@@ -230,12 +226,11 @@ function updatePreview() {
     var newVal = currentStock;
     if (selectedType === 'add')      newVal = currentStock + qty;
     if (selectedType === 'subtract') newVal = Math.max(0, currentStock - qty);
-    if (selectedType === 'set')      newVal = qty;
 
     var box   = document.getElementById('preview-box');
     var numEl = document.getElementById('preview-new');
 
-    if (qty > 0 || selectedType === 'set') {
+    if (qty > 0) {
         box.classList.add('show');
         numEl.textContent = newVal;
         numEl.style.color = newVal > currentStock ? '#16a34a'
