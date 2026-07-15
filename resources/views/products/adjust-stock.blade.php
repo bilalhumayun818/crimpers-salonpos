@@ -50,6 +50,7 @@
 
 /* ── Field ── */
 .field-group{margin-bottom:18px;}
+.price-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;}
 .field-label{display:block;font-size:.65rem;font-weight:800;color:#a1a1aa;text-transform:uppercase;letter-spacing:.09em;margin-bottom:8px;}
 .field-input{width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid #e4e4e7;font-size:.95rem;font-family:'Outfit',sans-serif;color:#18181b;background:#f8fafc;outline:none;transition:.2s;box-sizing:border-box;}
 .field-input:focus{border-color:var(--y1);background:#fff;box-shadow:0 0 0 3px rgba(247,223,121,.18);}
@@ -160,6 +161,25 @@
                 <label class="field-label" for="quantity">Quantity</label>
                 <input type="number" name="quantity" id="quantity" class="field-input" min="0"
                        value="{{ old('quantity', 0) }}" required placeholder="Enter quantity">
+            </div>
+
+            {{-- Updated pricing --}}
+            <div class="field-group">
+                <div class="section-lbl">Update Prices</div>
+                <div class="price-grid">
+                    <div>
+                        <label class="field-label" for="cost_price">New Cost Price</label>
+                        <input type="number" name="cost_price" id="cost_price" class="field-input" min="0" step="0.01"
+                               value="{{ old('cost_price', $product->cost_price) }}" required>
+                    </div>
+                    @if($product->product_type === 'retail')
+                    <div>
+                        <label class="field-label" for="selling_price">New Selling Price</label>
+                        <input type="number" name="selling_price" id="selling_price" class="field-input" min="0" step="0.01"
+                               value="{{ old('selling_price', $product->selling_price) }}" required>
+                    </div>
+                    @endif
+                </div>
             </div>
 
             {{-- Live preview --}}

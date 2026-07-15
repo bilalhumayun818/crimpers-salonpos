@@ -10,7 +10,8 @@
     --}}
     @php
         $customerName = $invoice->customer->name ?? $invoice->customer_name ?? 'Walk-in Customer';
-        $staffName = $invoice->user->name ?? 'System Admin';
+        $customerPhone = $invoice->customer?->phone ?? '—';
+        $staffName = $invoice->staff?->name ?? $invoice->user?->name ?? 'System Admin';
         $totalItems = $invoice->items->count();
     @endphp
 
@@ -43,7 +44,7 @@
 
         .history-stats-row {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
             gap: 16px;
         }
 
@@ -184,6 +185,10 @@
             <div class="h-stat-card">
                 <span class="h-stat-label">Client</span>
                 <span class="h-stat-val">{{ $customerName }}</span>
+            </div>
+            <div class="h-stat-card">
+                <span class="h-stat-label">Client Mobile</span>
+                <span class="h-stat-val">{{ $customerPhone }}</span>
             </div>
             <div class="h-stat-card">
                 <span class="h-stat-label">Date/Time</span>

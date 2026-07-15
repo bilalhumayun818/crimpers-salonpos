@@ -257,12 +257,36 @@ class ProductController extends Controller
         $validated = $request->validate([
             'adjustment_type' => 'required|in:add,subtract,set',
             'quantity' => 'required|numeric|min:0',
-            'reason' => 'required|string|max:255'
+            'reason' => 'required|string|max:255',
+            'cost_price' => 'required|numeric|min:0',
+            'selling_price' => 'nullable|numeric|min:0',
         ]);
 
         $oldStock = $product->current_stock;
+        $oldSellingPrice = $product->selling_price;
+        $oldCostPrice = $product->cost_price;
 
-        DB::transaction(function() use ($validated, $product) {
+        DB::transaction(function() use ($validated, $product, $oldSellingPrice, $oldCostPrice) {
+            $newSellingPrice = $product->product_type === 'retail'
+                ? $validated['selling_price']
+                : $product->selling_price;
+
+            $product->update([
+                'cost_price' => $validated['cost_price'],
+                'selling_price' => $newSellingPrice,
+            ]);
+
+            if ($oldSellingPrice != $product->selling_price || $oldCostPrice != $product->cost_price) {
+                \App\Models\ProductPriceHistory::create([
+                    'product_id' => $product->id,
+                    'user_id' => auth()->id(),
+                    'old_selling_price' => $oldSellingPrice,
+                    'new_selling_price' => $product->selling_price,
+                    'old_cost_price' => $oldCostPrice,
+                    'new_cost_price' => $product->cost_price,
+                ]);
+            }
+
             switch ($validated['adjustment_type']) {
                 case 'add':
                     $product->addStock($validated['quantity']);
