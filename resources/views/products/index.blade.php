@@ -119,6 +119,17 @@
         </select>
     </div>
     <div class="fg">
+        <label>Category</label>
+        <select name="category_id" onchange="this.form.submit()">
+            <option value="">All Categories</option>
+            @foreach($categories as $category)
+                <option value="{{ $category->id }}" {{ (string) request('category_id') === (string) $category->id ? 'selected' : '' }}>
+                    {{ $category->name }}
+                </option>
+            @endforeach
+        </select>
+    </div>
+    <div class="fg">
         <label>Stock Status</label>
         <select name="stock_status" onchange="this.form.submit()">
             <option value="all" {{ request('stock_status','all')==='all'?'selected':'' }}>All Status</option>

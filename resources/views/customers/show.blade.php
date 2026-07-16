@@ -69,6 +69,15 @@
 .act-val{font-size:.82rem;font-weight:700;color:var(--ydark);}
 .act-time{font-size:.68rem;color:#a1a1aa;margin-top:1px;}
 
+.invoice-history{overflow-x:auto;}
+.invoice-table{min-width:700px;}
+.invoice-table-head,.invoice-row{display:grid;grid-template-columns:1.1fr .8fr 1.3fr 1.05fr .8fr;gap:14px;align-items:center;}
+.invoice-table-head{padding:10px 0 8px;border-bottom:1px solid #e4e4e7;color:#a1a1aa;font-size:.62rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;}
+.invoice-row{padding:13px 0;border-bottom:1px solid #f4f4f5;transition:background .15s;}
+.invoice-row:last-child{border-bottom:none;}.invoice-row:hover{background:#fffdf0;}
+.invoice-no{font-size:.8rem;font-weight:800;color:#18181b;}.invoice-cell{font-size:.75rem;color:#64748b;min-width:0;}.invoice-service{font-weight:700;color:#3f3f46;white-space:normal;}.invoice-amount{text-align:right;font-weight:800;color:var(--ydark);}
+.invoice-row .act-icon{display:none;}.invoice-row .act-info{display:contents;}.invoice-row .act-name{font-size:.8rem;font-weight:800;color:#18181b;white-space:normal;}.invoice-row .act-meta{font-size:.75rem;margin:0;white-space:normal!important;overflow:visible!important;max-width:none!important;}.invoice-row .act-right{text-align:right;}.invoice-row .act-time{display:none;}
+
 .status-pill{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:99px;font-size:.65rem;font-weight:700;}
 .sp-confirmed{background:var(--y2);color:var(--ydark);}
 .sp-completed{background:#f3e8ff;color:#7c3aed;}
@@ -235,16 +244,18 @@
                     </div>
                     <span class="panel-count">{{ $invoices->count() }} total</span>
                 </div>
-                <div class="panel-body">
+                <div class="panel-body invoice-history">
+                    <div class="invoice-table">
+                    <div class="invoice-table-head"><span>Invoice</span><span>Staff</span><span>Service / Product</span><span>Payment & Date</span><span style="text-align:right;">Amount</span></div>
                     @forelse($invoices as $inv)
-                    <div class="act-row">
+                    <a href="{{ route('invoices.show', $inv) }}" class="act-row invoice-row" style="text-decoration:none;color:inherit;">
                         <div class="act-icon"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
                         <div class="act-info">
                             <div class="act-name">{{ $inv->invoice_no }}</div>
-                            <div class="act-meta" style="color:var(--ydark);">By: {{ $inv->staff ? $inv->staff->name : '-' }}</div>
-                            <div class="act-meta" style="color: #64748b; font-weight: 500; margin: 3px 0; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ $inv->items ? implode(', ', $inv->items->pluck('custom_name')->toArray()) : '' }}">
+                            <div class="act-meta" style="color:var(--ydark);">By: {{ $inv->staff?->name ?? $inv->user?->name ?? '-' }}</div>
+                            <div class="act-meta" style="color:#64748b;font-weight:600;margin:3px 0;white-space:normal;overflow:visible;">
                                 @if($inv->items && $inv->items->count())
-                                    {{ implode(', ', $inv->items->pluck('custom_name')->toArray()) }}
+                                    {{ $inv->items->map(fn($item) => $item->custom_name ?: ($item->itemizable?->name ?? 'Unnamed item'))->implode(', ') }}
                                 @else
                                     No items listed
                                 @endif
@@ -255,10 +266,11 @@
                             <div class="act-val">PKR {{ number_format($inv->payable_amount,0) }}</div>
                             <div class="act-time">{{ $inv->created_at->format('g:i A') }}</div>
                         </div>
-                    </div>
+                    </a>
                     @empty
                     <div class="empty-msg">No invoices yet</div>
                     @endforelse
+                    </div>
                 </div>
             </div>
         </div>

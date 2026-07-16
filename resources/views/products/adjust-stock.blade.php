@@ -159,6 +159,19 @@
                        value="{{ old('quantity', 0) }}" required placeholder="Enter quantity">
             </div>
 
+            {{-- Supplier --}}
+            <div class="field-group">
+                <label class="field-label" for="supplier_id">Supplier</label>
+                <select name="supplier_id" id="supplier_id" class="field-input">
+                    <option value="">No Supplier / Generic</option>
+                    @foreach($suppliers as $supplier)
+                        <option value="{{ $supplier->id }}" {{ (string) old('supplier_id', $product->supplier_id) === (string) $supplier->id ? 'selected' : '' }}>
+                            {{ $supplier->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
             {{-- Updated pricing --}}
             <div class="field-group">
                 <div class="section-lbl">Update Prices</div>

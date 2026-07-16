@@ -114,6 +114,15 @@
 
 .toast-wrap{position:fixed;bottom:24px;right:24px;z-index:9999;}
 .toast{background:#18181b;color:#fff;padding:12px 20px;border-radius:11px;font-weight:600;font-size:.85rem;box-shadow:0 8px 20px rgba(0,0,0,.15);display:none;}
+
+/* Spreadsheet-style customer list */
+.customer-table-wrap{background:#fff;border:1.5px solid #E8EAED;border-radius:14px;overflow:auto;box-shadow:0 2px 8px rgba(0,0,0,.04);}
+.customer-table{width:100%;min-width:850px;border-collapse:collapse;}
+.customer-table th{background:#f8fafc;color:#71717a;text-align:left;padding:12px 14px;font-size:.66rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;border-bottom:1.5px solid #E8EAED;}
+.customer-table td{padding:13px 14px;border-bottom:1px solid #f0f2f5;font-size:.8rem;color:#52525b;vertical-align:middle;}
+.customer-table tr:last-child td{border-bottom:none;}.customer-table tbody tr:hover{background:#fffdf0;}
+.customer-cell{display:flex;align-items:center;gap:10px;}.customer-avatar{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,var(--y1),var(--yd));display:flex;align-items:center;justify-content:center;font-weight:800;color:#18181b;overflow:hidden;flex-shrink:0;}.customer-avatar img{width:100%;height:100%;object-fit:cover;}.customer-name{font-weight:800;color:#18181b;}.customer-email{font-size:.7rem;color:#a1a1aa;margin-top:2px;}.visits-badge{background:var(--y2);border:1px solid var(--y1);color:var(--ydark);border-radius:99px;padding:3px 9px;font-weight:800;font-size:.7rem;}.amount-cell{font-weight:800;color:var(--ydark)!important;}.table-actions{display:flex;gap:5px;justify-content:flex-end;}.table-actions .btn-act{flex:none;padding:7px 9px;}
+.cust-grid{display:none;}
 </style>
 
 <div class="pg-header">
@@ -134,6 +143,27 @@
             Add Customer
         </a>
     </div>
+</div>
+
+<div class="customer-table-wrap">
+    <table class="customer-table">
+        <thead><tr><th>#</th><th>Customer</th><th>Phone</th><th>Visits</th><th>Total Spent</th><th>Joined</th><th style="text-align:right;">Actions</th></tr></thead>
+        <tbody>
+        @forelse($customers as $index => $customer)
+            <tr id="customer-{{ $customer->id }}">
+                <td>{{ $customers->firstItem() + $index }}</td>
+                <td><div class="customer-cell"><div class="customer-avatar">@if($customer->image_path)<img src="{{ asset('storage/'.$customer->image_path) }}" alt="{{ $customer->name }}">@else{{ strtoupper(substr($customer->name, 0, 1)) }}@endif</div><div><div class="customer-name">{{ $customer->name }}</div><div class="customer-email">{{ $customer->email ?: 'No email' }}</div></div></div></td>
+                <td>{{ $customer->phone ?? '—' }}</td>
+                <td><span class="visits-badge">{{ $customer->invoices_count }} visits</span></td>
+                <td class="amount-cell">PKR {{ number_format($customer->invoices_sum_payable_amount ?? 0, 0) }}</td>
+                <td>{{ $customer->created_at->format('M d, Y') }}</td>
+                <td><div class="table-actions"><a href="{{ route('customers.show', $customer) }}" class="btn-act btn-view">View</a><a href="{{ route('customers.edit', $customer) }}" class="btn-act btn-edit">Edit</a><button type="button" class="btn-act btn-del" onclick="confirmDelete({{ $customer->id }}, '{{ addslashes($customer->name) }}')">Delete</button></div></td>
+            </tr>
+        @empty
+            <tr><td colspan="7" class="empty-state"><p>No customers found — add your first one</p></td></tr>
+        @endforelse
+        </tbody>
+    </table>
 </div>
 
 <div class="cust-grid">

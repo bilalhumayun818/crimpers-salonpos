@@ -22,6 +22,11 @@ class ProductController extends Controller
             $query->where('product_type', $request->type);
         }
 
+        // Filter by product category
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
         // Filter by stock status
         if ($request->has('stock_status') && $request->stock_status !== 'all') {
             switch ($request->stock_status) {
@@ -49,9 +54,10 @@ class ProductController extends Controller
             });
         }
 
-        $products = $query->paginate(15);
+        $products = $query->paginate(15)->withQueryString();
+        $categories = Category::where('type', 'product')->orderBy('name')->get();
 
-        return view('products.index', compact('products'));
+        return view('products.index', compact('products', 'categories'));
     }
 
     public function create()
@@ -249,7 +255,9 @@ class ProductController extends Controller
 
     public function showAdjustStock(Product $product)
     {
-        return view('products.adjust-stock', compact('product'));
+        $suppliers = Supplier::where('is_active', true)->orderBy('name')->get();
+
+        return view('products.adjust-stock', compact('product', 'suppliers'));
     }
 
     public function adjustStock(Request $request, Product $product)
@@ -258,6 +266,7 @@ class ProductController extends Controller
             'adjustment_type' => 'required|in:add,subtract',
             'quantity' => 'required|numeric|min:0',
             'reason' => 'required|string|max:255',
+            'supplier_id' => 'nullable|exists:suppliers,id',
             'cost_price' => 'nullable|numeric|min:0',
             'selling_price' => 'nullable|numeric|min:0',
         ]);
@@ -276,6 +285,7 @@ class ProductController extends Controller
                 : $product->cost_price;
 
             $product->update([
+                'supplier_id' => $validated['supplier_id'] ?? null,
                 'cost_price' => $newCostPrice,
                 'selling_price' => $newSellingPrice,
             ]);
@@ -325,6 +335,32 @@ class ProductController extends Controller
                     break;
                 case 'subtract':
                     $product->deductStock($validated['quantity']);
+
+                    // Record removed stock in Purchase History as a negative adjustment.
+                    $supplierId = $product->supplier_id ?? Supplier::first()?->id;
+                    if ($supplierId) {
+                        $purchase = Purchase::create([
+                            'purchase_order_number' => 'ADJ-REM-' . strtoupper(bin2hex(random_bytes(3))),
+                            'supplier_id' => $supplierId,
+                            'order_date' => now(),
+                            'status' => 'received',
+                            'total_amount' => -($validated['quantity'] * ($product->cost_price ?? 0)),
+                            'notes' => 'Stock removal adjustment: ' . $validated['reason'],
+                        ]);
+
+                        $purchase->update([
+                            'purchase_order_number' => 'ADJ-REM-' . date('Y') . '-' . str_pad($purchase->id, 4, '0', STR_PAD_LEFT),
+                        ]);
+
+                        PurchaseItem::create([
+                            'purchase_id' => $purchase->id,
+                            'product_id' => $product->id,
+                            'quantity_ordered' => -$validated['quantity'],
+                            'quantity_received' => -$validated['quantity'],
+                            'unit_cost' => $product->cost_price ?? 0,
+                            'line_total' => -($validated['quantity'] * ($product->cost_price ?? 0)),
+                        ]);
+                    }
                     break;
             }
         });

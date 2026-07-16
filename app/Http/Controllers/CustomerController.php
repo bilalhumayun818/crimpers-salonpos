@@ -11,7 +11,9 @@ class CustomerController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Customer::query();
+        $query = Customer::query()
+            ->withCount('invoices')
+            ->withSum('invoices', 'payable_amount');
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -34,7 +36,7 @@ class CustomerController extends Controller
     public function show(Customer $customer)
     {
         $appointments = $customer->appointments()->with(['service', 'staff'])->latest()->get();
-        $invoices = $customer->invoices()->with(['items', 'staff'])->latest()->get();
+        $invoices = $customer->invoices()->with(['items.itemizable', 'staff', 'user'])->latest()->get();
         $lastVisit = $invoices->first()?->created_at;
         
         return view('customers.show', compact('customer', 'appointments', 'invoices', 'lastVisit'));

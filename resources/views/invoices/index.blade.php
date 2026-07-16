@@ -450,7 +450,8 @@
                     <td>
                         <div style="font-size:0.8rem; color:#475569; max-height: 60px; overflow-y: auto;">
                         @forelse($pur->purchaseItems as $item)
-                            <div>{{ $item->product->name ?? 'Unknown' }} <strong style="color:#10b981;">(+{{ $item->quantity_received ?? $item->quantity_ordered }})</strong></div>
+                            @php $quantity = $item->quantity_received ?? $item->quantity_ordered; @endphp
+                            <div>{{ $item->product->name ?? 'Unknown' }} <strong style="color:{{ $quantity < 0 ? '#ef4444' : '#10b981' }};">({{ $quantity > 0 ? '+' : '' }}{{ $quantity }})</strong></div>
                         @empty
                             <span style="color:#94a3b8;">No items</span>
                         @endforelse
