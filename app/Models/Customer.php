@@ -22,6 +22,7 @@ class Customer extends Model
         'birthday',
         'preferences',
         'notes',
+        'pending_balance',
     ];
 
     protected $attributes = [

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <title>Invoice #{{ $invoice->invoice_no }}</title>
@@ -37,8 +37,19 @@
     <div class="divider"></div>
 
     <div class="row"><span>Subtotal</span><span>PKR {{ number_format($invoice->total_amount, 2) }}</span></div>
+    @if(floatval($invoice->tax) > 0)
     <div class="row"><span>Tax (5%)</span><span>PKR {{ number_format($invoice->tax, 2) }}</span></div>
+    @endif
+    @if(floatval($invoice->discount) > 0)
     <div class="row"><span>Discount</span><span>-PKR {{ number_format($invoice->discount, 2) }}</span></div>
+    @endif
+
+    @php
+        $derivedPreviousBalance = floatval($invoice->payable_amount) - (floatval($invoice->total_amount) - floatval($invoice->discount));
+    @endphp
+    @if($derivedPreviousBalance > 0.001)
+    <div class="row"><span>Prev. Balance</span><span>+PKR {{ number_format($derivedPreviousBalance, 2) }}</span></div>
+    @endif
 
     <div class="divider"></div>
 

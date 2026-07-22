@@ -49,9 +49,9 @@ class StaffController extends Controller
         ]);
 
         $validated['hourly_rate'] = 0;
-        $validated['base_salary'] = 0;
+        $validated['base_salary'] = $validated['salary'] ?? 0;
         $validated['commission_per_customer'] = 0;
-        $validated['commission_per_service'] = 0;
+        $validated['commission_per_service'] = $request->input('commission_per_service', 10);
         $validated['total_earned_commission'] = 0;
         $validated['rating_total'] = 0;
         $validated['rating_count'] = 0;
@@ -124,6 +124,7 @@ class StaffController extends Controller
             'password' => 'nullable|string|min:8|confirmed',
             'staff_role_id' => 'nullable|exists:staff_roles,id',
             'status' => 'nullable|boolean',
+            'commission_per_service' => 'nullable|numeric|min:0|max:100',
         ]);
 
         $validated['status'] = $request->has('status');

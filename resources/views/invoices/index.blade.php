@@ -271,10 +271,31 @@
             </div>
             <div class="date-content">
                 <table class="inv-table">
+                    <thead>
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Time</th>
+                            <th>Customer</th>
+                            <th>Employee</th>
+                            <th>Total Sales</th>
+                            <th>Total Cost</th>
+                            <th>Profit</th>
+                            <th>Method</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
                     <tbody>
                         @foreach($dailyInvoices as $invoice)
+                        @php 
+                            $totalCost = $invoice->totalCost(); 
+                            $profit = $invoice->payable_amount - $totalCost;
+                        @endphp
                         <tr>
-                            <td style="width:120px;"><span class="inv-no">{{ $invoice->invoice_no }}</span></td>
+                            <td><span class="inv-no">{{ $invoice->invoice_no }}</span></td>
+                            <td>
+                                <div style="font-size:.85rem;color:#94a3b8;font-weight:500;">{{ $invoice->created_at->format('H:i') }}</div>
+                            </td>
                             <td>
                                 <div style="font-weight:600;color:#1e293b;">
                                     {{ $invoice->customer ? $invoice->customer->name : ($invoice->customer_name ?? 'Walk-in Customer') }}
@@ -284,15 +305,27 @@
                                     {{ $invoice->customer->phone }}
                                 </div>
                                 @endif
-                                <div style="font-size:0.75rem; color:#64748b; margin-top:2px;">
-                                    By: {{ $invoice->staff ? $invoice->staff->name : '-' }}
+                            </td>
+                            <td>
+                                <div style="font-weight:600;color:#1e293b;font-size:0.85rem;">
+                                    {{ $invoice->staff_names ?? ($invoice->staff?->name ?? '-') }}
                                 </div>
                             </td>
-                            <td style="font-weight:800;color:#c9a800; text-align:right;">PKR {{ number_format($invoice->payable_amount, 2) }}</td>
-                            <td style="width:100px; text-align:center;">
-                                <span class="pill pill-green">{{ ucfirst($invoice->payment_method) }}</span>
+                            <td style="font-weight:800;color:#c9a800;">PKR {{ number_format($invoice->payable_amount, 2) }}</td>
+                            <td style="font-weight:600;color:#64748b;">PKR {{ number_format($totalCost, 2) }}</td>
+                            <td style="font-weight:800;color:{{ $profit >= 0 ? '#10b981' : '#ef4444' }};">PKR {{ number_format($profit, 2) }}</td>
+                            <td>
+                                <span class="pill pill-gray">{{ ucfirst($invoice->payment_method) }}</span>
+                                @if(in_array($invoice->payment_method, ['bank','split']) && $invoice->bank_name)
+                                    <div style="font-size:0.7rem;color:#64748b;margin-top:2px;">{{ $invoice->bank_name }}</div>
+                                @endif
                             </td>
-                            <td style="width:80px; text-align:right;">
+                            <td>
+                                <span class="pill {{ $invoice->status === 'paid' ? 'pill-green' : 'pill-amber' }}">
+                                    {{ ucfirst($invoice->status) }}
+                                </span>
+                            </td>
+                            <td>
                                 <a href="{{ route('invoices.show', $invoice->id) }}" class="action-link">View</a>
                             </td>
                         </tr>
@@ -343,13 +376,18 @@
                         </td>
                         <td>
                             <div style="font-weight:600;color:#1e293b;font-size:0.85rem;">
-                                {{ $invoice->staff ? $invoice->staff->name : '-' }}
+                                {{ $invoice->staff_names ?? ($invoice->staff?->name ?? '-') }}
                             </div>
                         </td>
                         <td style="font-weight:800;color:#c9a800;">PKR {{ number_format($invoice->payable_amount, 2) }}</td>
                         <td style="font-weight:600;color:#64748b;">PKR {{ number_format($totalCost, 2) }}</td>
                         <td style="font-weight:800;color:{{ $profit >= 0 ? '#10b981' : '#ef4444' }};">PKR {{ number_format($profit, 2) }}</td>
-                        <td><span class="pill pill-gray">{{ ucfirst($invoice->payment_method) }}</span></td>
+                        <td>
+                            <span class="pill pill-gray">{{ ucfirst($invoice->payment_method) }}</span>
+                            @if(in_array($invoice->payment_method, ['bank','split']) && $invoice->bank_name)
+                                <div style="font-size:0.7rem;color:#64748b;margin-top:2px;">{{ $invoice->bank_name }}</div>
+                            @endif
+                        </td>
                         <td><span class="pill pill-green">{{ ucfirst($invoice->status) }}</span></td>
                         <td>
                             <a href="{{ route('invoices.show', $invoice->id) }}" class="action-link">View</a>

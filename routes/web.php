@@ -26,6 +26,9 @@ use App\Http\Controllers\StaffHRMSController;
 use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\BranchController;
 
+// Suppress Chrome DevTools automatic probe (Chrome 136+)
+Route::get('/.well-known/appspecific/com.chrome.devtools.json', fn() => response()->json([]));
+
 Route::get('/login', [LoginController::class , 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class , 'login']);
 Route::post('/logout', [LoginController::class , 'logout'])->name('logout');
@@ -252,6 +255,10 @@ Route::middleware(['auth'])->group(function () {
         
         Route::get('/reports/salary', [ReportController::class, 'salaryReport'])->name('reports.salary');
         Route::get('/reports/salary/export', [ReportController::class, 'exportSalaryReport'])->name('reports.salary.export');
+        
+        // New Reports
+        Route::get('/reports/customer-purchases', [ReportController::class, 'customerPurchasesReport'])->name('reports.customer-purchases');
+        Route::get('/reports/employee-customers', [ReportController::class, 'employeeCustomersReport'])->name('reports.employee-customers');
     });
 
     Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');

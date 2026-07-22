@@ -285,6 +285,8 @@
                 <a href="{{ route('reports.staff') }}" class="sub-link {{ request()->routeIs('reports.staff') ? 'active-sub' : '' }}">Staff Details Report</a>
                 <a href="{{ route('reports.attendance') }}" class="sub-link {{ request()->routeIs('reports.attendance') ? 'active-sub' : '' }}">Staff Attendance Report</a>
                 <a href="{{ route('reports.salary') }}" class="sub-link {{ request()->routeIs('reports.salary') ? 'active-sub' : '' }}">Staff Salary Report</a>
+                <a href="{{ route('reports.customer-purchases') }}" class="sub-link {{ request()->routeIs('reports.customer-purchases') ? 'active-sub' : '' }}">Customer Purchases</a>
+                <a href="{{ route('reports.employee-customers') }}" class="sub-link {{ request()->routeIs('reports.employee-customers') ? 'active-sub' : '' }}">Employee-Customer Link</a>
                 @if(auth()->user()->hasPermission('inventory', 'view'))
                 <a href="{{ route('inventory.stock-report') }}" class="sub-link {{ request()->routeIs('inventory.stock-report') ? 'active-sub' : '' }}">Stock Report</a>
                 <a href="{{ route('inventory.usage-report') }}" class="sub-link {{ request()->routeIs('inventory.usage-report') ? 'active-sub' : '' }}">Usage Report</a>

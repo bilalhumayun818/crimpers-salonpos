@@ -11,7 +11,7 @@
     @php
         $customerName = $invoice->customer->name ?? $invoice->customer_name ?? 'Walk-in Customer';
         $customerPhone = $invoice->customer?->phone ?? '—';
-        $staffName = $invoice->staff?->name ?? $invoice->user?->name ?? 'System Admin';
+        $staffName = $invoice->staff_names ?? $invoice->staff?->name ?? $invoice->user?->name ?? 'System Admin';
         $totalItems = $invoice->items->count();
     @endphp
 
@@ -245,15 +245,26 @@
                 <div class="h-card-head">Financial Summary</div>
                 <div class="h-card-body">
                     <div class="h-summary-box">
-                        <div class="h-sum-row"><span>Subtotal</span><b>PKR
+                        <div class="h-sum-row"><span>Subtotal (Services & Products)</span><b>PKR
                                 {{ number_format($invoice->total_amount, 2) }}</b></div>
-                        <div class="h-sum-row"><span>GST (5%)</span><b>PKR {{ number_format($invoice->tax, 2) }}</b></div>
                         @if($invoice->discount > 0)
                             <div class="h-sum-row"><span>Discount</span><b style="color:#ef4444;">- PKR
                                     {{ number_format($invoice->discount, 2) }}</b></div>
                         @endif
+                        
+                        @php
+                            $derivedPreviousBalance = floatval($invoice->payable_amount) - (floatval($invoice->total_amount) - floatval($invoice->discount));
+                        @endphp
+                        
+                        @if($derivedPreviousBalance > 0.001)
+                            <div class="h-sum-row">
+                                <span>Previous Outstanding Balance Added</span>
+                                <b style="color:#ef4444;">+ PKR {{ number_format($derivedPreviousBalance, 2) }}</b>
+                            </div>
+                        @endif
+
                         <div class="h-sum-total">
-                            <span style="font-size:14px; font-weight:800;">Payable</span>
+                            <span style="font-size:14px; font-weight:800;">Total Payable Amount</span>
                             <span class="h-total-val">PKR {{ number_format($invoice->payable_amount, 2) }}</span>
                         </div>
 
@@ -269,6 +280,14 @@
                     </div>
                     <div style="margin-top:20px; font-size:12px; color:#64748b; text-align:center;">
                         Payment via {{ strtoupper($invoice->payment_method ?? 'cash') }}
+                        @if($invoice->payment_method === 'bank' && $invoice->bank_name)
+                            <br><span style="font-weight:600">Bank: {{ $invoice->bank_name }}</span>
+                        @elseif($invoice->payment_method === 'split' && $invoice->bank_name)
+                            <br><span style="font-weight:600">Included Bank: {{ $invoice->bank_name }}</span>
+                        @endif
+                        @if($invoice->pending_amount > 0)
+                            <br><span style="font-weight:800; color:#ef4444;">Pending: PKR {{ number_format($invoice->pending_amount, 2) }}</span>
+                        @endif
                     </div>
                 </div>
             </div>

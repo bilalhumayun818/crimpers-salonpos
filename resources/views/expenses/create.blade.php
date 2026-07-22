@@ -214,7 +214,8 @@ input:checked + .slider:before{transform:translateX(26px);}
                         <label class="f-label">Expense Type *</label>
                         <select name="staff_category" class="f-select" id="staff-cat">
                             <option value="">-- Choose Type --</option>
-                            <option value="salary_advance">Salary Advance</option>
+                            <option value="salary">💰 Full Salary Payment (Resets Commission Cycle)</option>
+                            <option value="salary_advance">Salary Advance (Resets Commission Cycle)</option>
                             <option value="bonus">Bonus</option>
                             <option value="allowance">Allowance</option>
                             <option value="deduction">Deduction</option>

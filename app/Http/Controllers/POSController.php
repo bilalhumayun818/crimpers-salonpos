@@ -43,13 +43,26 @@ class POSController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'items' => 'required|array',
-            'payment_method' => 'required|string',
-            'total_amount' => 'required|numeric',
-            'payable_amount' => 'required|numeric',
-            'customer_id' => 'nullable|exists:customers,id',
-            'discount' => 'nullable|numeric',
+            'items'                    => 'nullable|array',
+            'payment_method'           => 'required|string',
+            'total_amount'             => 'required|numeric',
+            'payable_amount'           => 'required|numeric',
+            'customer_id'              => 'nullable|exists:customers,id',
+            'discount'                 => 'nullable|numeric',
+            'previous_balance'         => 'nullable|numeric|min:0',
+            'staff_allocations'        => 'nullable|array',
+            'staff_allocations.*.id'   => 'required|exists:staff,id',
+            'staff_allocations.*.amount' => 'required|numeric|min:0',
+            'is_credit_bill'           => 'nullable|boolean',
+            'bank_name'                => 'nullable|string',
+            'split_bank'               => 'nullable|numeric',
         ]);
+
+        if ($request->is_credit_bill) {
+            if (!$request->customer_id && (!$request->customer_name || $request->customer_name === 'Walk-in Customer')) {
+                return response()->json(['success' => false, 'message' => 'Customer information is required for credit bills.'], 400);
+            }
+        }
 
         return DB::transaction(function () use ($request) {
             $customerId = $request->customer_id;
@@ -82,6 +95,20 @@ class POSController extends Controller
                 }
             }
 
+            $status = 'paid';
+            $pendingAmount = 0;
+            if ($request->is_credit_bill) {
+                $status = 'pending';
+                $pendingAmount = max(0, floatval($request->payable_amount) - floatval($request->cash_received ?? 0));
+            }
+
+            $staffNames = [];
+            if (!empty($request->staff_allocations)) {
+                $staffIds = array_column($request->staff_allocations, 'id');
+                $staffList = \App\Models\Staff::whereIn('id', $staffIds)->pluck('name')->toArray();
+                $staffNames = implode(', ', $staffList);
+            }
+
             $invoice = Invoice::create([
                 'invoice_no' => 'INV-' . strtoupper(Str::random(8)),
                 'user_id' => Auth::id() ?? 1, // Fallback for dev
@@ -94,8 +121,12 @@ class POSController extends Controller
                 'payment_method' => $request->payment_method,
                 'cash_received' => $request->cash_received,
                 'change_returned' => $request->change_returned,
-                'status' => 'paid',
-                'staff_id' => $request->staff_id,
+                'bank_name' => $request->bank_name,
+                'pending_amount' => $pendingAmount,
+                'split_bank' => $request->split_bank ?? 0,
+                'status' => $status,
+                'staff_id' => !empty($request->staff_allocations) ? $request->staff_allocations[0]['id'] : null,
+                'staff_names' => empty($staffNames) ? null : $staffNames,
             ]);
 
             foreach ($request->items as $item) {
@@ -108,19 +139,6 @@ class POSController extends Controller
                     'price' => $item['price'],
                     'subtotal' => $item['subtotal'],
                 ]);
-
-                // Update Staff HRMS Data if staff selected
-                if ($request->staff_id) {
-                    $performer = Staff::find($request->staff_id);
-                    if ($performer) {
-                        // Add commission if it's a service or package
-                        if ($item['type'] === 'service' || $item['type'] === 'package') {
-                            // Commission is now a percentage of the subtotal
-                            $commissionAmount = ($item['subtotal'] * ($performer->commission_per_service / 100));
-                            $performer->increment('total_earned_commission', $commissionAmount);
-                        }
-                    }
-                }
 
                 if ($item['type'] === 'product') {
                     $product = Product::find($item['id']);
@@ -148,20 +166,54 @@ class POSController extends Controller
                 }
             }
 
-            // Update Staff Rating and Per-Customer Commission once per invoice
-            if ($request->staff_id) {
-                $performer = Staff::find($request->staff_id);
-                if ($performer) {
-                    if ($request->rating) {
-                        $performer->increment('rating_total', (int) $request->rating);
-                        $performer->increment('rating_count');
+            // Process Multi-Staff Allocations for Commission and Ratings
+            if (!empty($request->staff_allocations)) {
+                foreach ($request->staff_allocations as $allocation) {
+                    $performer = Staff::find($allocation['id']);
+                    if ($performer) {
+                        // 1. Update Rating
+                        if ($request->rating) {
+                            $performer->increment('rating_total', (int) $request->rating);
+                            $performer->increment('rating_count');
+                        }
+
+                        // 2. Add Commission based on their allocated manual amount
+                        // NOTE: The frontend already applies the discount to this allocated amount pool
+                        if (floatval($allocation['amount']) > 0) {
+                            $commissionAmount = floatval($allocation['amount']) * ($performer->commission_per_service / 100);
+                            $performer->increment('total_earned_commission', $commissionAmount);
+                        }
                     }
-                    
-                    // Add Per-Customer Commission (Percentage of total payable amount)
-                    if ($performer->commission_per_customer > 0) {
-                        $customerCommission = ($request->payable_amount * ($performer->commission_per_customer / 100));
-                        $performer->increment('total_earned_commission', $customerCommission);
+                }
+            }
+
+            // Update customer's persistent pending_balance
+            if ($customerId) {
+                $customerRecord = Customer::find($customerId);
+                if ($customerRecord) {
+                    $previousBalance = floatval($request->previous_balance ?? 0);
+                    $totalPaidNow    = floatval($request->cash_received ?? 0);
+
+                    // For split payments, sum all components
+                    if ($request->payment_method === 'split') {
+                        $totalPaidNow = floatval($request->split_cash ?? 0)
+                                      + floatval($request->split_card ?? 0)
+                                      + floatval($request->split_bank ?? 0);
                     }
+
+                    // Grand bill = services total + previous balance
+                    $grandTotal     = floatval($request->total_amount) - floatval($request->discount ?? 0) + $previousBalance;
+
+                    if ($request->is_credit_bill) {
+                        // Credit bill: partial payment allowed
+                        $newBalance = max(0, $grandTotal - $totalPaidNow);
+                    } else {
+                        // Full payment: any remaining previous balance is cleared
+                        // (they paid the full payable_amount which includes previous balance)
+                        $newBalance = 0;
+                    }
+
+                    $customerRecord->update(['pending_balance' => $newBalance]);
                 }
             }
 
@@ -303,6 +355,7 @@ class POSController extends Controller
                 'discount_percent' => $discountPercent,
                 'total_spent' => $totalSpent,
                 'last_visit' => $lastVisit,
+                'pending_balance' => (float)$customer->pending_balance,
             ],
         ]);
     }

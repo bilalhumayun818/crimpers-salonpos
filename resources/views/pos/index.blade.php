@@ -803,8 +803,7 @@
         <div class="cart-totals-area" style="padding:12px 18px; background:#fff; border-top:1px solid #f1f5f9;">
           <div class="totals-row" style="margin-bottom:4px;"><span>Subtotal</span><span id="subtotal-val"
               style="color:#1e293b;">PKR 0.00</span></div>
-          <div class="totals-row" style="margin-bottom:8px;"><span>Tax (5%)</span><span id="tax-val"
-              style="color:#1e293b;">PKR 0.00</span></div>
+          {{-- No GST Row --}}
           <div class="totals-total"
             style="padding:10px 14px; border-radius:12px; border-width:2px; display:flex; align-items:center; justify-content:space-between;">
             <span class="totals-total-label" style="font-size:.75rem; color:#475569;">Total Payable</span>
@@ -1017,6 +1016,7 @@
               }
 
               quickStatsWrap.style.display = 'block';
+              renderCart(); // re-evaluate checkout button
             } else {
               activeCustomer = null;
               quickStatsWrap.style.display = 'none';
@@ -1128,9 +1128,11 @@
       // ── Render cart ───────────────────────────────────────────────
       function renderCart() {
         cartEl.querySelectorAll('.cart-row').forEach(r => r.remove());
+        const pendingBal = activeCustomer ? parseFloat(activeCustomer.pending_balance || 0) : 0;
+        
         if (!cart.length) {
           emptyMsg.style.display = 'flex';
-          checkBtn.disabled = true;
+          checkBtn.disabled = pendingBal <= 0;
           setTotals(0); return;
         }
         emptyMsg.style.display = 'none';
@@ -1180,29 +1182,29 @@
       }
 
       function setTotals(sub) {
-        const tax = sub * 0.05;
         document.getElementById('subtotal-val').textContent = `PKR ${sub.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
-        document.getElementById('tax-val').textContent = `PKR ${tax.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
-        document.getElementById('total-val').textContent = `PKR ${(sub + tax).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+        document.getElementById('total-val').textContent = `PKR ${sub.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
       }
 
       // ── Checkout ──────────────────────────────────────────────────
       checkBtn.addEventListener('click', () => {
-        if (!cart.length) return;
+        const pendingBal = activeCustomer ? parseFloat(activeCustomer.pending_balance || 0) : 0;
+        if (!cart.length && pendingBal <= 0) return;
 
         const sub = cart.reduce((s, i) => s + i.sub, 0);
-        const tax = sub * .05;
-        const finalTotal = sub + tax;
+        const tax = 0; // No GST
+        const finalTotal = sub;
 
         const checkoutData = {
           cart: cart,
           subtotal: sub,
           tax: tax,
           discount: 0,
-          payable_amount: finalTotal,
+          payable_amount: finalTotal, // Will add pending balance in payment.blade.php
           customerName: custNameInput.value || 'Walk-in Customer',
           customerPhone: custPhoneInput.value || '',
-          customer_id: activeCustomer ? activeCustomer.id : null
+          customer_id: activeCustomer ? activeCustomer.id : null,
+          pending_balance: pendingBal
         };
 
         localStorage.setItem('pos_checkout_session', JSON.stringify(checkoutData));

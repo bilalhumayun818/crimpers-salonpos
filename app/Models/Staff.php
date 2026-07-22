@@ -11,6 +11,10 @@ class Staff extends Model
     use BelongsToBranch;
     use HasFactory;
 
+    protected $attributes = [
+        'commission_per_service' => 10,
+    ];
+
     protected $fillable = [
         'name',
         'date_of_birth',

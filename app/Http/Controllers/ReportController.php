@@ -384,4 +384,108 @@ class ReportController extends Controller
 
         return response()->stream($callback, 200, $headers);
     }
+    public function customerPurchasesReport(\Illuminate\Http\Request $request)
+    {
+        $dateFrom = $request->get('date_from', Carbon::today()->startOfMonth()->format('Y-m-d'));
+        $dateTo = $request->get('date_to', Carbon::today()->format('Y-m-d'));
+
+        $start = Carbon::parse($dateFrom)->startOfDay();
+        $end = Carbon::parse($dateTo)->endOfDay();
+
+        $invoices = Invoice::with(['items.itemizable', 'customer', 'staff'])
+            ->whereBetween('created_at', [$start, $end])
+            ->latest()
+            ->get();
+
+        // Group by customer
+        $customers = [];
+        foreach ($invoices as $invoice) {
+            $custId = $invoice->customer_id ?? 'walk-in-' . $invoice->id; // treat null as individual walk-in or group by name
+            if (!$invoice->customer_id) {
+                // Group walk-ins by name if possible
+                $custId = 'walkin_' . md5(strtolower(trim($invoice->customer_name)));
+            }
+            
+            if (!isset($customers[$custId])) {
+                $customers[$custId] = [
+                    'name' => $invoice->customer_name ?? ($invoice->customer->name ?? 'Walk-in Customer'),
+                    'phone' => $invoice->customer->phone ?? '—',
+                    'invoices' => [],
+                    'total_billed' => 0,
+                    'total_paid' => 0,
+                    'total_pending' => 0,
+                    'items_bought' => []
+                ];
+            }
+
+            $customers[$custId]['invoices'][] = $invoice;
+            $customers[$custId]['total_billed'] += $invoice->payable_amount;
+            
+            $pending = floatval($invoice->pending_amount);
+            $customers[$custId]['total_pending'] += $pending;
+            $customers[$custId]['total_paid'] += ($invoice->payable_amount - $pending);
+
+            foreach ($invoice->items as $item) {
+                $itemName = $item->custom_name ?? ($item->itemizable->name ?? 'Unknown Item');
+                $customers[$custId]['items_bought'][] = $itemName . ' (Qty: ' . $item->quantity . ')';
+            }
+        }
+
+        return view('reports.customer-purchases', compact('customers', 'dateFrom', 'dateTo'));
+    }
+
+    public function employeeCustomersReport(\Illuminate\Http\Request $request)
+    {
+        $dateFrom = $request->get('date_from', Carbon::today()->startOfMonth()->format('Y-m-d'));
+        $dateTo = $request->get('date_to', Carbon::today()->format('Y-m-d'));
+
+        $start = Carbon::parse($dateFrom)->startOfDay();
+        $end = Carbon::parse($dateTo)->endOfDay();
+
+        $invoices = Invoice::with(['items', 'customer'])
+            ->whereBetween('created_at', [$start, $end])
+            ->latest()
+            ->get();
+
+        $employeeRecords = [];
+
+        foreach ($invoices as $invoice) {
+            $staffList = [];
+            if (!empty($invoice->staff_names)) {
+                $names = array_map('trim', explode(',', $invoice->staff_names));
+                foreach ($names as $name) {
+                    if ($name) $staffList[] = $name;
+                }
+            } elseif ($invoice->staff) {
+                $staffList[] = $invoice->staff->name;
+            } else {
+                $staffList[] = 'Unassigned';
+            }
+
+            foreach ($staffList as $staffName) {
+                if (!isset($employeeRecords[$staffName])) {
+                    $employeeRecords[$staffName] = [];
+                }
+
+                $services = $invoice->items->pluck('custom_name')->toArray();
+                
+                $employeeRecords[$staffName][] = [
+                    'date' => $invoice->created_at,
+                    'invoice_no' => $invoice->invoice_no,
+                    'customer' => $invoice->customer_name ?? ($invoice->customer->name ?? 'Walk-in Customer'),
+                    'services' => implode(', ', $services),
+                    'invoice_total' => $invoice->payable_amount
+                ];
+            }
+        }
+
+        // Sort records by date descending inside each employee
+        foreach ($employeeRecords as $name => &$records) {
+            usort($records, function($a, $b) {
+                return $b['date'] <=> $a['date'];
+            });
+        }
+
+        return view('reports.employee-customers', compact('employeeRecords', 'dateFrom', 'dateTo'));
+    }
 }

@@ -57,6 +57,17 @@ class ExpenseController extends Controller
 
         Expense::create($data);
 
+        // If admin paid a staff salary/salary_advance expense, reset their commission cycle
+        if ($expenseType === 'staff' && $request->staff_id && in_array($request->category, ['salary', 'salary_advance'])) {
+            $staffMember = Staff::find($request->staff_id);
+            if ($staffMember) {
+                $staffMember->update([
+                    'total_earned_commission' => 0,
+                    'last_paid_at'            => now(),
+                ]);
+            }
+        }
+
         $typeLabel = $expenseType === 'daily' ? 'Daily Expense' : ($expenseType === 'fixed' ? 'Fixed Expense' : 'Staff Expense');
         return redirect()->back()->with('success', "{$typeLabel} successfully recorded!");
     }

@@ -34,7 +34,7 @@
 .social-tag{padding:4px 12px;background:var(--ybg);border:1.5px solid #f0e8a0;border-radius:99px;font-size:.75rem;font-weight:700;color:var(--ydark);}
 
 /* ── Stats row ── */
-.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px;}
 .stat-card{background:#fff;border:1.5px solid #f0e8a0;border-radius:13px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.04);transition:.2s;}
 .stat-card:hover{border-color:var(--y1);box-shadow:0 3px 12px rgba(247,223,121,.2);}
 .stat-icon{width:34px;height:34px;border-radius:9px;background:var(--y2);display:flex;align-items:center;justify-content:center;color:var(--ydark);margin-bottom:10px;}
@@ -179,6 +179,29 @@
     </div>
 
     {{-- Stats --}}
+    @php
+        $pendingBal = floatval($customer->pending_balance ?? 0);
+    @endphp
+
+    {{-- Pending Balance Alert Banner --}}
+    @if($pendingBal > 0)
+    <div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:14px;padding:16px 20px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:42px;height:42px;border-radius:10px;background:#fee2e2;color:#ef4444;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            </div>
+            <div>
+                <div style="font-size:.9rem;font-weight:800;color:#b91c1c;">Outstanding Pending Balance</div>
+                <div style="font-size:.75rem;color:#dc2626;margin-top:2px;">This customer has an unpaid balance from a previous credit bill.</div>
+            </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+            <div style="font-size:1.6rem;font-weight:900;color:#b91c1c;">PKR {{ number_format($pendingBal, 2) }}</div>
+            <div style="font-size:.7rem;color:#ef4444;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Amount Due</div>
+        </div>
+    </div>
+    @endif
+
     <div class="stats-row">
         <div class="stat-card">
             <div class="stat-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
@@ -193,7 +216,12 @@
         <div class="stat-card">
             <div class="stat-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
             <div class="stat-val" style="font-size:1rem;">PKR {{ number_format($customer->invoices()->sum('payable_amount'),0) }}</div>
-            <div class="stat-lbl">Total Spent</div>
+            <div class="stat-lbl">Total Billed</div>
+        </div>
+        <div class="stat-card" style="{{ $pendingBal > 0 ? 'border-color:#fca5a5;background:#fef2f2;' : '' }}">
+            <div class="stat-icon" style="{{ $pendingBal > 0 ? 'background:#fee2e2;color:#ef4444;' : '' }}"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg></div>
+            <div class="stat-val" style="font-size:1rem;color:{{ $pendingBal > 0 ? '#b91c1c' : '#16a34a' }};">{{ $pendingBal > 0 ? 'PKR '.number_format($pendingBal,0) : 'Cleared' }}</div>
+            <div class="stat-lbl" style="{{ $pendingBal > 0 ? 'color:#ef4444;' : '' }}">Pending Balance</div>
         </div>
         <div class="stat-card">
             <div class="stat-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
@@ -264,7 +292,11 @@
                         </div>
                         <div class="act-right">
                             <div class="act-val">PKR {{ number_format($inv->payable_amount,0) }}</div>
-                            <div class="act-time">{{ $inv->created_at->format('g:i A') }}</div>
+                            @if(floatval($inv->pending_amount) > 0)
+                                <div style="font-size:.65rem;background:#fee2e2;color:#b91c1c;padding:1px 6px;border-radius:99px;font-weight:700;margin-top:3px;">Pending: PKR {{ number_format($inv->pending_amount,0) }}</div>
+                            @else
+                                <div style="font-size:.65rem;background:#dcfce7;color:#16a34a;padding:1px 6px;border-radius:99px;font-weight:700;margin-top:3px;">✓ Paid</div>
+                            @endif
                         </div>
                     </a>
                     @empty
@@ -291,6 +323,12 @@
                     <div class="info-row"><span class="info-lbl">Birthday</span><span class="info-val">{{ $customer->birthday ? $customer->birthday->format('M d, Y') : '—' }}</span></div>
                     <div class="info-row"><span class="info-lbl">Membership</span><span class="info-val">{{ $customer->membership_type ?? 'None' }}</span></div>
                     <div class="info-row"><span class="info-lbl">Prepaid Credit</span><span class="info-val" style="color:var(--ydark);font-weight:800;">PKR {{ number_format($customer->prepaid_credit ?? 0,2) }}</span></div>
+                    <div class="info-row">
+                        <span class="info-lbl">Pending Balance</span>
+                        <span class="info-val" style="color:{{ $pendingBal > 0 ? '#b91c1c' : '#16a34a' }};font-weight:900;font-size:1rem;">
+                            {{ $pendingBal > 0 ? 'PKR '.number_format($pendingBal, 2) : 'PKR 0.00 ✓' }}
+                        </span>
+                    </div>
                 </div>
             </div>
 

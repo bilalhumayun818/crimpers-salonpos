@@ -463,6 +463,27 @@
                 </div>
             </div>
 
+            {{-- Commission Settings --}}
+            <div class="form-card">
+                <div class="form-card-head">
+                    <div class="form-card-head-icon">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+                        </svg>
+                    </div>
+                    <span class="form-card-head-title">Commission Settings</span>
+                </div>
+                <div class="form-card-body">
+                    <div style="background:#fffbeb; border:1.5px solid #fde68a; border-radius:10px; padding:10px 14px; margin-bottom:16px; font-size:.82rem; color:#92400e;">
+                        <strong>ℹ️ Commission Info:</strong> Commission is earned as a <strong>% of each service/package</strong> amount. If a discount is given on the invoice, commission is reduced proportionally.
+                    </div>
+                    <div class="f-group">
+                        <label class="f-label">Commission per Service <span>(%)</span></label>
+                        <input type="number" name="commission_per_service" value="{{ old('commission_per_service', $staff->commission_per_service) }}" min="0" max="100" step="0.1" class="f-input" placeholder="e.g. 10">
+                    </div>
+                </div>
+            </div>
+
             {{-- Account & Role --}}
             <div class="form-card">
                 <div class="form-card-head">
