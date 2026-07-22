@@ -79,8 +79,25 @@
 .btn-edit:hover{background:var(--y1);}
 .btn-stock{background:linear-gradient(135deg,#18181b,#3f3f46);color:#F7DF79;border-color:#18181b;}
 .btn-stock:hover{background:linear-gradient(135deg,#3f3f46,#52525b);box-shadow:0 3px 8px rgba(0,0,0,.18);}
+.btn-issue{background:#f3e8ff;color:#7c3aed;border-color:#e9d5ff;}
+.btn-issue:hover{background:#e9d5ff;}
 .btn-del{background:transparent;color:#dc2626;border-color:#fca5a5;}
 .btn-del:hover{background:#fee2e2;}
+
+/* ── Modals ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:999;padding:20px;}
+.modal-box{background:#fff;border-radius:18px;width:100%;max-width:420px;padding:26px;box-shadow:0 20px 50px rgba(0,0,0,.2);}
+.modal-title{font-size:1.15rem;font-weight:800;color:#18181b;margin-bottom:16px;}
+.modal-form-group{margin-bottom:14px;text-align:left;}
+.modal-form-group label{display:block;font-size:.75rem;font-weight:700;color:#52525b;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;}
+.modal-form-group input, .modal-form-group textarea {width:100%;padding:10px 14px;border:1.5px solid #e4e4e7;border-radius:9px;font-size:.9rem;font-family:'Outfit',sans-serif;box-sizing:border-box;}
+.modal-form-group input:focus, .modal-form-group textarea:focus {border-color:var(--y1);outline:none;box-shadow:0 0 0 3px rgba(247,223,121,.15);}
+.modal-footer{display:flex;gap:10px;margin-top:20px;}
+.btn-m{flex:1;padding:12px;border-radius:9px;font-size:.9rem;font-weight:700;cursor:pointer;transition:.2s;border:none;font-family:'Outfit',sans-serif;}
+.btn-m-cancel{background:#f4f4f5;color:#52525b;}
+.btn-m-cancel:hover{background:#e4e4e7;}
+.btn-m-confirm{background:var(--y2);color:var(--ydark);border:1.5px solid var(--y1);}
+.btn-m-confirm:hover{background:var(--y1);}
 
 /* Empty state */
 .empty-state{padding:70px 20px;text-align:center;color:#a1a1aa;}
@@ -250,6 +267,11 @@
                                 <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
                                 Adjust Stock
                             </a>
+                            {{-- Issue --}}
+                            <button type="button" class="btn-act btn-issue" onclick="openIssueModal({{ $product->id }}, '{{ htmlspecialchars(addslashes($product->name)) }}', {{ $product->current_stock }})">
+                                <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                                Issue for Shop
+                            </button>
                             {{-- View --}}
                             <a href="{{ route('products.show', $product) }}" class="btn-act btn-view">View</a>
                             {{-- Edit --}}
@@ -283,4 +305,47 @@
         {{ $products->links() }}
     </div>
 </div>
+
+{{-- Issue Shop Use Modal --}}
+<div class="modal-overlay" id="issueModal">
+    <div class="modal-box">
+        <div class="modal-title" id="issueModalTitle">Issue Product</div>
+        <form method="POST" action="{{ route('inventory.store-shop-use') }}">
+            @csrf
+            <input type="hidden" name="product_id" id="issueProductId">
+            
+            <div class="modal-form-group">
+                <label>Available Stock</label>
+                <div id="issueStockText" style="font-weight:800;color:#18181b;font-size:1.1rem;">0 units</div>
+            </div>
+
+            <div class="modal-form-group">
+                <label>Quantity to Issue</label>
+                <input type="number" name="quantity" min="1" step="0.01" required placeholder="e.g. 1">
+            </div>
+
+            <div class="modal-form-group">
+                <label>Notes / Reason</label>
+                <textarea name="notes" rows="2" placeholder="e.g. Used for hair coloring station 2..."></textarea>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-m btn-m-cancel" onclick="closeIssueModal()">Cancel</button>
+                <button type="submit" class="btn-m btn-m-confirm">Confirm Issue</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openIssueModal(id, name, stock) {
+    document.getElementById('issueProductId').value = id;
+    document.getElementById('issueModalTitle').textContent = 'Issue: ' + name;
+    document.getElementById('issueStockText').textContent = stock + ' units';
+    document.getElementById('issueModal').style.display = 'flex';
+}
+function closeIssueModal() {
+    document.getElementById('issueModal').style.display = 'none';
+}
+</script>
 @endsection

@@ -54,7 +54,7 @@ class ProductController extends Controller
             });
         }
 
-        $products = $query->paginate(15)->withQueryString();
+        $products = $query->orderBy('name', 'asc')->paginate(15)->withQueryString();
         $categories = Category::where('type', 'product')->orderBy('name')->get();
 
         return view('products.index', compact('products', 'categories'));

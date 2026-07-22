@@ -288,6 +288,6 @@ class InventoryController extends Controller
             ]);
         });
 
-        return redirect()->route('inventory.dashboard')->with('success', 'Product issued and expense added successfully.');
+        return redirect()->back()->with('success', 'Product issued and expense added successfully.');
     }
 }
