@@ -38,6 +38,11 @@ class Invoice extends Model
         return $this->hasMany(InvoiceItem::class);
     }
 
+    public function staffCommissions()
+    {
+        return $this->hasMany(InvoiceStaffCommission::class);
+    }
+
     public function totalCost()
     {
         return $this->items->sum(function($item) {

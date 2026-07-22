@@ -18,6 +18,7 @@ use Illuminate\Support\Str;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\Staff;
+use App\Models\InvoiceStaffCommission;
 
 class POSController extends Controller
 {
@@ -179,10 +180,23 @@ class POSController extends Controller
 
                         // 2. Add Commission based on their allocated manual amount
                         // NOTE: The frontend already applies the discount to this allocated amount pool
-                        if (floatval($allocation['amount']) > 0) {
-                            $commissionAmount = floatval($allocation['amount']) * ($performer->commission_per_service / 100);
-                            $performer->increment('total_earned_commission', $commissionAmount);
+                        $allocatedAmt   = floatval($allocation['amount']);
+                        $commissionRate = floatval($performer->commission_per_service);
+                        $commissionAmt  = $allocatedAmt > 0 ? $allocatedAmt * ($commissionRate / 100) : 0;
+
+                        if ($allocatedAmt > 0) {
+                            $performer->increment('total_earned_commission', $commissionAmt);
                         }
+
+                        // 3. Save a permanent commission record for this invoice
+                        InvoiceStaffCommission::create([
+                            'invoice_id'       => $invoice->id,
+                            'staff_id'         => $performer->id,
+                            'staff_name'       => $performer->name,
+                            'allocated_amount' => $allocatedAmt,
+                            'commission_rate'  => $commissionRate,
+                            'commission_earned'=> $commissionAmt,
+                        ]);
                     }
                 }
             }

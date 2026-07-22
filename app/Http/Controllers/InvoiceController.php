@@ -219,13 +219,13 @@ class InvoiceController extends Controller
      */
     public function show(Invoice $invoice)
     {
-        $invoice->load(['items.itemizable', 'customer', 'user', 'staff']);
+        $invoice->load(['items.itemizable', 'customer', 'user', 'staff', 'staffCommissions']);
         return view('invoices.history-detail', compact('invoice'));
     }
 
     public function historyShow(Invoice $invoice)
     {
-        $invoice->load(['items.itemizable', 'customer', 'user', 'staff']);
+        $invoice->load(['items.itemizable', 'customer', 'user', 'staff', 'staffCommissions']);
         return view('invoices.history-detail', compact('invoice'));
     }
 

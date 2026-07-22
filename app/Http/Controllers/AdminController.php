@@ -57,9 +57,9 @@ class AdminController extends Controller
                                 ->value('val');
 
         $lowStockList = Product::where('track_inventory', true)
-                        ->whereColumn('current_stock', '<=', 'min_stock_level')
+                        ->whereRaw('current_stock <= min_stock_level')
                         ->orderBy('current_stock')
-                        ->take(6)->get();
+                        ->get();
 
         $recentAppointments = Appointment::with(['staff', 'service'])->latest()->take(5)->get();
         $lateAppointments = Appointment::where('status', 'cancelled')

@@ -292,5 +292,65 @@
                 </div>
             </div>
         </div>
+
+        {{-- Staff Commission Breakdown --}}
+        @if($invoice->staffCommissions->count() > 0)
+        <div class="history-main-card">
+            <div class="h-card-head" style="background: linear-gradient(90deg,#1a1a1a,#2d2d2d); color:#F7DF79;">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px;"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"/></svg>
+                Staff Commission Breakdown
+            </div>
+            <div class="h-card-body" style="padding:0">
+                <table class="h-table">
+                    <thead>
+                        <tr>
+                            <th style="padding-left:24px">Staff Name</th>
+                            <th style="text-align:right">Allocated Amount</th>
+                            <th style="text-align:right">Commission Rate</th>
+                            <th style="text-align:right; padding-right:24px">Commission Earned</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($invoice->staffCommissions as $sc)
+                        <tr>
+                            <td style="padding-left:24px">
+                                <div style="font-weight:700; color:#111827; display:flex; align-items:center; gap:8px;">
+                                    <div style="width:32px; height:32px; border-radius:9px; background:linear-gradient(135deg,#F7DF79,#c9a800); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:.8rem; color:#18181b; flex-shrink:0;">
+                                        {{ strtoupper(substr($sc->staff_name, 0, 1)) }}
+                                    </div>
+                                    {{ $sc->staff_name }}
+                                </div>
+                            </td>
+                            <td style="text-align:right; font-weight:600; color:#374151;">
+                                PKR {{ number_format($sc->allocated_amount, 0) }}
+                            </td>
+                            <td style="text-align:right;">
+                                <span style="background:#ede9fe; color:#6d28d9; padding:3px 10px; border-radius:99px; font-size:.72rem; font-weight:700;">
+                                    {{ number_format($sc->commission_rate, 1) }}%
+                                </span>
+                            </td>
+                            <td style="text-align:right; padding-right:24px; font-weight:800; font-size:1rem; color:#c9a800;">
+                                PKR {{ number_format($sc->commission_earned, 0) }}
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                    <tfoot>
+                        <tr style="background:#fffdf0; border-top:2px solid #f0e8a0;">
+                            <td style="padding:14px 24px; font-weight:800; font-size:.85rem; color:#18181b;">Total Commission Paid Out</td>
+                            <td style="text-align:right; font-weight:700;">
+                                PKR {{ number_format($invoice->staffCommissions->sum('allocated_amount'), 0) }}
+                            </td>
+                            <td></td>
+                            <td style="text-align:right; padding-right:24px; font-weight:900; font-size:1.1rem; color:#c9a800;">
+                                PKR {{ number_format($invoice->staffCommissions->sum('commission_earned'), 0) }}
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+        @endif
+
     </div>
 @endsection
