@@ -676,7 +676,7 @@
         {{-- Expandable filter tabs --}}
         <div class="filter-row-container" style="display:flex; align-items:flex-start; gap:8px; margin-top:8px;">
           <div id="filter-row"
-            style="display:flex; flex-wrap:wrap; gap:8px; overflow:hidden; max-height:42px; transition:max-height 0.3s ease; flex:1;">
+            style="display:flex; flex-wrap:wrap; gap:8px; overflow:hidden; max-height:500px; transition:max-height 0.3s ease; flex:1;">
             <button class="cat-tab main-cat-tab active" data-main-type="service">All Services</button>
             <button class="cat-tab main-cat-tab pkg-tab" data-main-type="package">Packages</button>
             <button class="cat-tab main-cat-tab prod-tab" data-main-type="product">Products</button>
@@ -689,7 +689,7 @@
           </div>
           <button id="toggle-more-cat" class="cat-tab"
             style="padding:0; width:34px; height:34px; display:flex; align-items:center; justify-content:center; flex-shrink:0; background:#f8fafc;">
-            <svg style="transition:0.3s" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"
+            <svg style="transition:0.3s; transform:rotate(180deg);" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"
               viewBox="0 0 24 24">
               <path d="M6 9l6 6 6-6" />
             </svg>
@@ -1238,7 +1238,7 @@
       const filterRow = document.getElementById('filter-row');
       const toggleMoreCat = document.getElementById('toggle-more-cat');
       toggleMoreCat.addEventListener('click', () => {
-        const isCol = filterRow.style.maxHeight === '42px' || !filterRow.style.maxHeight;
+        const isCol = filterRow.style.maxHeight === '42px';
         filterRow.style.maxHeight = isCol ? '500px' : '42px';
         toggleMoreCat.querySelector('svg').style.transform = isCol ? 'rotate(180deg)' : 'rotate(0deg)';
       });
