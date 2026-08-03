@@ -9,127 +9,194 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
+        :root {
+            color-scheme: light;
+        }
+
         body {
             font-family: 'Outfit', sans-serif;
-            background: #f3f4f6;
+            background: linear-gradient(135deg, #fefce8 0%, #f3f4f6 100%);
             color: #111827;
             margin: 0;
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
-        }
-        .container {
-            max-width: 800px;
-            width: 100%;
             padding: 20px;
         }
+
+        .container {
+            width: min(920px, 100%);
+            padding: 0;
+        }
+
         .header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 28px;
         }
-        .header h1 {
-            font-size: 2.2rem;
+
+        .header .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(247, 223, 121, 0.22);
+            color: #7a5c00;
             font-weight: 700;
-            color: #1e293b;
+            font-size: 0.78rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            padding: 8px 12px;
+            border-radius: 999px;
+            margin-bottom: 12px;
         }
+
+        .header h1 {
+            font-size: clamp(1.6rem, 3vw, 2.3rem);
+            font-weight: 800;
+            color: #111827;
+            margin: 0 0 8px;
+        }
+
         .header p {
             color: #64748b;
-            font-size: 1.1rem;
-            margin-top: 10px;
+            font-size: clamp(0.95rem, 2vw, 1.05rem);
+            margin: 0 auto;
+            max-width: 560px;
+            line-height: 1.6;
         }
+
         .cards {
-            display: flex;
-            gap: 25px;
-            justify-content: center;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
         }
+
+        .card-form {
+            display: flex;
+        }
+
         .card {
+            width: 100%;
             background: white;
-            border-radius: 20px;
-            padding: 40px 30px;
-            text-align: center;
-            flex: 1;
-            min-width: 280px;
-            max-width: 350px;
+            border-radius: 22px;
+            padding: 24px 20px;
+            text-align: left;
             cursor: pointer;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 2px solid transparent;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            border: 1px solid #f1f5f9;
             position: relative;
             overflow: hidden;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
-        .card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            border-color: #F7DF79;
+
+        .card:hover,
+        .card:focus-within {
+            transform: translateY(-4px);
+            box-shadow: 0 18px 38px rgba(15, 23, 42, 0.12);
+            border-color: #f7df79;
         }
+
         .card::before {
             content: '';
             position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 6px;
-            background: linear-gradient(90deg, #F5EFC0, #F7DF79);
-            opacity: 0;
-            transition: opacity 0.3s ease;
+            inset: 0 0 auto 0;
+            height: 5px;
+            background: linear-gradient(90deg, #f5efc0, #f7df79);
         }
-        .card:hover::before {
-            opacity: 1;
-        }
-        .card h2 {
-            font-size: 1.6rem;
-            font-weight: 700;
-            margin-bottom: 10px;
-            color: #18181b;
-        }
-        .card p {
-            color: #64748b;
-            margin-bottom: 0;
-            font-size: 0.95rem;
-            line-height: 1.5;
-        }
+
         .icon-wrap {
-            width: 70px;
-            height: 70px;
-            background: #F5EFC0;
-            color: #7A5C00;
-            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            background: #fef3c7;
+            color: #92400e;
+            border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 25px;
-            transition: transform 0.3s ease;
+            margin-bottom: 16px;
         }
-        .card:hover .icon-wrap {
-            transform: scale(1.1);
-            background: #F7DF79;
-        }
+
         .icon-wrap svg {
-            width: 34px;
-            height: 34px;
+            width: 28px;
+            height: 28px;
+        }
+
+        .card h2 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin: 0 0 8px;
+            color: #111827;
+        }
+
+        .card p {
+            color: #64748b;
+            margin: 0;
+            font-size: 0.92rem;
+            line-height: 1.6;
+        }
+
+        .card .meta {
+            margin-top: 14px;
+            color: #7a5c00;
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 16px;
+                align-items: flex-start;
+            }
+
+            .container {
+                padding-top: 10px;
+            }
+
+            .header {
+                margin-bottom: 22px;
+            }
+
+            .cards {
+                grid-template-columns: 1fr;
+                gap: 14px;
+            }
+
+            .card {
+                min-height: 170px;
+                padding: 20px 18px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
+            <div class="eyebrow">Crimpers POS</div>
             <h1>Welcome, {{ auth()->user()->name }}</h1>
-            <p>Please select a branch to continue</p>
+            <p>Select the branch you want to work in, then you’ll be taken straight to your dashboard.</p>
         </div>
+
         <div class="cards">
             @foreach($branches as $branch)
-            <form action="{{ route('admin.branch.switch_from_select') }}" method="POST" style="flex:1; min-width: 280px; max-width: 350px;">
+            <form action="{{ route('admin.branch.switch_from_select') }}" method="POST" class="card-form">
                 @csrf
                 <input type="hidden" name="branch_id" value="{{ $branch->id }}">
-                <div class="card" onclick="this.parentNode.submit()">
+                <button type="submit" class="card" style="border:0; appearance:none;">
                     <div class="icon-wrap">
                         <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                         </svg>
                     </div>
                     <h2>{{ $branch->name }}</h2>
-                    <p>{{ $branch->address ?? 'Branch Location' }}</p>
-                </div>
+                    <p>{{ $branch->address ?? 'Branch location will appear here.' }}</p>
+                    <div class="meta">Open branch</div>
+                </button>
             </form>
             @endforeach
         </div>
