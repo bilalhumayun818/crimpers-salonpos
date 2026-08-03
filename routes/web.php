@@ -29,6 +29,18 @@ use App\Http\Controllers\BranchController;
 // Suppress Chrome DevTools automatic probe (Chrome 136+)
 Route::get('/.well-known/appspecific/com.chrome.devtools.json', fn() => response()->json([]));
 
+Route::get('/manifest.json', function () {
+    return response()->file(public_path('manifest.json'), [
+        'Content-Type' => 'application/manifest+json',
+    ]);
+});
+
+Route::get('/sw.js', function () {
+    return response()->file(public_path('sw.js'), [
+        'Content-Type' => 'application/javascript',
+    ]);
+});
+
 Route::get('/login', [LoginController::class , 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class , 'login']);
 Route::post('/logout', [LoginController::class , 'logout'])->name('logout');

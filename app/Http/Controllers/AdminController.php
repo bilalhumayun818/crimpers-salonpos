@@ -81,8 +81,15 @@ class AdminController extends Controller
                         })->count();
         $activeDiscounts = DiscountRule::where('is_active', true)->count();
         
-        $reconciliationDone = CashReconciliation::whereDate('created_at', $today)->exists();
-
+        $businessDate = CashReconciliation::getCurrentBusinessDate();
+        $reconciliationDone = CashReconciliation::where('date', $businessDate)->where('is_closed', true)->exists();
+        
+        $needsReconciliation = false;
+        $hoursPastMidnight = 0;
+        if ($businessDate->isYesterday()) {
+            $needsReconciliation = true;
+            $hoursPastMidnight = now()->diffInMinutes(now()->startOfDay()) / 60;
+        }
         // Chart Data: Daily Sales (Last 7 Days)
         $dailySales = [];
         for ($i = 6; $i >= 0; $i--) {
@@ -122,6 +129,7 @@ class AdminController extends Controller
             'totalProducts', 'lowStockProducts', 'outOfStockProducts', 'inventoryValue', 'inventoryValueSell',
             'lowStockList', 'recentAppointments', 'recentInvoices', 'lateAppointments',
             'staffPresentToday', 'totalStaff', 'activeCoupons', 'activeDiscounts', 'reconciliationDone',
+            'needsReconciliation', 'hoursPastMidnight',
             'dailySales', 'weeklySales', 'monthlySales'
         ));
     }

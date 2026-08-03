@@ -91,8 +91,11 @@
         <div class="recon-hero-sub">Verify and close your daily cash drawer</div>
     </div>
     <div class="recon-hero-date">
-        <div class="recon-hero-date-label">Today</div>
-        <div class="recon-hero-date-val">{{ now()->format('M j, Y') }}</div>
+        <div class="recon-hero-date-label">Shift Date</div>
+        <div class="recon-hero-date-val">{{ $businessDate->format('M j, Y') }}</div>
+        @if($businessDate->isYesterday())
+            <div style="font-size:0.7rem; color:#ef4444; font-weight:800; margin-top:4px;">(Previous Day Unclosed)</div>
+        @endif
     </div>
 </div>
 

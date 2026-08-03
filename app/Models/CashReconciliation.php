@@ -13,11 +13,25 @@ class CashReconciliation extends Model
 
     protected $fillable = [
         'user_id', 'date', 'opening_balance', 'expected_cash', 
-        'actual_cash', 'difference', 'notes', 'status', 'branch_id'
+        'actual_cash', 'difference', 'notes', 'status', 'branch_id', 'is_closed'
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public static function getCurrentBusinessDate()
+    {
+        $today = \Carbon\Carbon::today();
+        $yesterday = \Carbon\Carbon::yesterday();
+
+        $yesterdayRecon = self::where('date', $yesterday)->first();
+
+        if (!$yesterdayRecon || !$yesterdayRecon->is_closed) {
+            return $yesterday;
+        }
+
+        return $today;
     }
 }

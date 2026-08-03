@@ -13,18 +13,20 @@ class ReconciliationController extends Controller
 {
     public function index()
     {
-        $today = Carbon::today();
-        $reconciliation = CashReconciliation::where('date', $today)->first();
+        $businessDate = CashReconciliation::getCurrentBusinessDate();
+        $reconciliation = CashReconciliation::where('date', $businessDate)->first();
         
-        $totalSales = Invoice::whereDate('created_at', $today)
+        $totalSales = Invoice::where('created_at', '>=', $businessDate->copy()->startOfDay())
+            ->where('created_at', '<=', now())
             ->where('payment_method', 'cash')
             ->sum('payable_amount');
 
-        $totalExpenses = Expense::whereDate('created_at', $today)
+        $totalExpenses = Expense::where('created_at', '>=', $businessDate->copy()->startOfDay())
+            ->where('created_at', '<=', now())
             ->where('deducted_from_drawer', true)
             ->sum('amount');
 
-        return view('reconciliation.index', compact('reconciliation', 'totalSales', 'totalExpenses'));
+        return view('reconciliation.index', compact('reconciliation', 'totalSales', 'totalExpenses', 'businessDate'));
     }
 
     public function store(Request $request)
@@ -34,18 +36,19 @@ class ReconciliationController extends Controller
             'actual_cash' => 'nullable|numeric',
         ]);
 
-        $today = Carbon::today();
+        $businessDate = CashReconciliation::getCurrentBusinessDate();
         $reconciliation = CashReconciliation::updateOrCreate(
-            ['date' => $today, 'user_id' => auth()->id() ?? 1],
+            ['date' => $businessDate, 'user_id' => auth()->id() ?? 1],
             [
                 'opening_balance' => $request->opening_balance ?? 0,
                 'actual_cash' => $request->actual_cash ?? 0,
                 'expected_cash' => $request->expected_cash ?? 0,
                 'difference' => ($request->actual_cash ?? 0) - ($request->expected_cash ?? 0),
                 'status' => (abs(($request->actual_cash ?? 0) - ($request->expected_cash ?? 0)) <= 1) ? 'matched' : 'discrepancy',
+                'is_closed' => true,
             ]
         );
 
-        return redirect()->back()->with('success', 'Reconciliation updated successfully');
+        return redirect()->back()->with('success', 'Reconciliation closed successfully');
     }
 }

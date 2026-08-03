@@ -157,6 +157,14 @@
         pointer-events: none;
     }
 }
+
+@keyframes heartbeat {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  25% { transform: scale(1.04); box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+  50% { transform: scale(1); }
+  75% { transform: scale(1.04); box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
 </style>
 
 {{-- Hero Banner --}}
@@ -373,10 +381,10 @@
                     <span>Active Discounts</span>
                     <span class="status-val">{{ $activeDiscounts }}</span>
                 </div>
-                <div style="margin-top:18px;">
+                <div style="margin-top:18px; {{ $needsReconciliation ? 'animation: heartbeat ' . max(0.5, 2 - ($hoursPastMidnight * 0.2)) . 's infinite;' : '' }}">
                     @if(!$reconciliationDone)
-                    <a href="{{ route('reconciliation.index') }}" style="display:block;padding:11px;background:linear-gradient(135deg,var(--y1),var(--yd));border-radius:11px;text-align:center;text-decoration:none;font-weight:700;font-size:.85rem;color:#18181b;box-shadow:0 3px 12px rgba(199,168,0,.3);">
-                        Close Day Now
+                    <a href="{{ route('reconciliation.index') }}" style="display:block;padding:11px;background:{{ $needsReconciliation ? 'linear-gradient(135deg, #ef4444, #991b1b)' : 'linear-gradient(135deg,var(--y1),var(--yd))' }};border-radius:11px;text-align:center;text-decoration:none;font-weight:700;font-size:.85rem;color:{{ $needsReconciliation ? '#fff' : '#18181b' }};box-shadow:{{ $needsReconciliation ? '0 3px 15px rgba(239, 68, 68, 0.5)' : '0 3px 12px rgba(199,168,0,.3)' }}; {{ $needsReconciliation ? 'border: 2px solid #fca5a5;' : '' }}">
+                        {{ $needsReconciliation ? 'CLOSE YESTERDAY NOW!' : 'Close Day Now' }}
                     </a>
                     @else
                     <div style="text-align:center;color:var(--y1);font-size:.8rem;font-weight:700;padding:8px;">
