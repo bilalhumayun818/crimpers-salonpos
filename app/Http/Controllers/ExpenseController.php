@@ -21,7 +21,7 @@ class ExpenseController extends Controller
         // Validate based on expense type
         $rules = [
             'expense_type' => 'required|in:daily,fixed,staff',
-            'amount' => 'required|numeric|min:0.01',
+            'amount' => 'required|numeric|min:0.00',
             'deducted_from_drawer' => 'required|boolean',
         ];
         
@@ -38,17 +38,45 @@ class ExpenseController extends Controller
         
         $request->validate($rules);
 
+        $staffMember = null;
+        if ($expenseType === 'staff' && $request->staff_id) {
+            $staffMember = Staff::find($request->staff_id);
+        }
+
+        $category = $request->category ?? '';
+        $amount = (float) $request->amount;
+        $description = $request->description ?? '';
+
+        // If category is full salary, calculate net salary payable and override amount & description
+        if ($expenseType === 'staff' && $staffMember && in_array($category, ['full_salary', 'salary'])) {
+            $base = (float) ($staffMember->base_salary ?? 0);
+            $comm = (float) ($staffMember->total_earned_commission ?? 0);
+            $adv  = $staffMember->current_cycle_advances;
+            $ded  = $staffMember->current_cycle_deductions;
+            $net  = $staffMember->net_salary_payable;
+
+            $amount = $net;
+            $description = "Full Salary Paid to {$staffMember->name} (Base: PKR " . number_format($base, 2) . 
+                           ", Commission: PKR " . number_format($comm, 2) . 
+                           ", Advances: PKR " . number_format($adv, 2) . 
+                           ", Deductions: PKR " . number_format($ded, 2) . 
+                           ", Net Paid: PKR " . number_format($net, 2) . ")";
+            if ($request->filled('description')) {
+                $description .= " - Note: " . $request->description;
+            }
+        }
+
         $data = [
             'branch_id' => session('current_branch_id', 1),
             'expense_type' => $expenseType,
-            'description' => $request->description ?? '',
-            'amount' => $request->amount,
+            'description' => $description,
+            'amount' => $amount,
             'deducted_from_drawer' => $request->deducted_from_drawer,
             'user_id' => auth()->id(),
         ];
         
-        if ($request->category) {
-            $data['category'] = $request->category;
+        if ($category) {
+            $data['category'] = $category;
         }
         
         if ($expenseType === 'staff' && $request->staff_id) {
@@ -57,15 +85,12 @@ class ExpenseController extends Controller
 
         Expense::create($data);
 
-        // If admin paid a staff salary/salary_advance expense, reset their commission cycle
-        if ($expenseType === 'staff' && $request->staff_id && in_array($request->category, ['salary', 'salary_advance'])) {
-            $staffMember = Staff::find($request->staff_id);
-            if ($staffMember) {
-                $staffMember->update([
-                    'total_earned_commission' => 0,
-                    'last_paid_at'            => now(),
-                ]);
-            }
+        // Reset commission cycle ONLY if full salary is paid
+        if ($expenseType === 'staff' && $staffMember && in_array($category, ['full_salary', 'salary'])) {
+            $staffMember->update([
+                'total_earned_commission' => 0,
+                'last_paid_at'            => now(),
+            ]);
         }
 
         $typeLabel = $expenseType === 'daily' ? 'Daily Expense' : ($expenseType === 'fixed' ? 'Fixed Expense' : 'Staff Expense');

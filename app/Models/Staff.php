@@ -135,6 +135,39 @@ class Staff extends Model
         return round($this->rating_total / $this->rating_count, 1);
     }
 
+    public function expenses()
+    {
+        return $this->hasMany(Expense::class);
+    }
+
+    public function getCurrentCycleAdvancesAttribute()
+    {
+        $startDate = $this->last_paid_at ?? $this->created_at;
+        return (float) $this->expenses()
+            ->whereIn('category', ['advance', 'salary_advance'])
+            ->where('created_at', '>=', $startDate)
+            ->sum('amount');
+    }
+
+    public function getCurrentCycleDeductionsAttribute()
+    {
+        $startDate = $this->last_paid_at ?? $this->created_at;
+        return (float) $this->expenses()
+            ->where('category', 'deduction')
+            ->where('created_at', '>=', $startDate)
+            ->sum('amount');
+    }
+
+    public function getNetSalaryPayableAttribute()
+    {
+        $base = (float) ($this->base_salary ?? 0);
+        $comm = (float) ($this->total_earned_commission ?? 0);
+        $adv  = $this->current_cycle_advances;
+        $ded  = $this->current_cycle_deductions;
+        
+        return max(0, ($base + $comm) - ($adv + $ded));
+    }
+
     public function attendances()
     {
         return $this->hasMany(StaffAttendance::class);

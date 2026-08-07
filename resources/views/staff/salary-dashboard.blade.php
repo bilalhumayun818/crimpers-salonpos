@@ -102,7 +102,8 @@
                 <th>Base Salary</th>
                 <th>Comm. Rates</th>
                 <th>Earned Commission</th>
-                <th>Total Payable</th>
+                <th>Advances / Deductions</th>
+                <th>Net Payable</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -139,7 +140,13 @@
                     </div>
                 </td>
                 <td><span class="amt-badge">+ PKR {{ number_format($s->total_earned_commission, 2) }}</span></td>
-                <td><span style="font-weight:800; color:#16a34a; font-size:1rem;">PKR {{ number_format($s->base_salary + $s->total_earned_commission, 2) }}</span></td>
+                <td>
+                    <div style="font-size:0.75rem;">
+                        <div style="color:#a16207;">Adv: <span style="font-weight:700;">PKR {{ number_format($s->current_cycle_advances, 2) }}</span></div>
+                        <div style="color:#b91c1c;">Ded: <span style="font-weight:700;">PKR {{ number_format($s->current_cycle_deductions, 2) }}</span></div>
+                    </div>
+                </td>
+                <td><span style="font-weight:800; color:#16a34a; font-size:1rem;">PKR {{ number_format($s->net_salary_payable, 2) }}</span></td>
                 <td>
                     <a href="{{ route('staff.salary-performance', $s) }}" class="perf-badge" style="text-decoration:none;">View Full Stats</a>
                 </td>

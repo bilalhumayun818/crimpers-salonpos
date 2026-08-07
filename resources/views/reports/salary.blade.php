@@ -89,9 +89,10 @@
             <tr>
                 <th>Staff Name</th>
                 <th>Base Salary</th>
-                <th>Hourly Rate</th>
-                <th>Total Earned Commission</th>
-                <th>Estimated Total Due</th>
+                <th>Earned Commission</th>
+                <th>Advances</th>
+                <th>Deductions</th>
+                <th>Net Due Payable</th>
                 <th>Last Paid Date</th>
             </tr>
         </thead>
@@ -100,9 +101,10 @@
             <tr>
                 <td class="name-cell">{{ $staff->name }}</td>
                 <td>Rs {{ number_format($staff->base_salary, 2) }}</td>
-                <td>Rs {{ number_format($staff->hourly_rate, 2) }}</td>
                 <td class="commission">Rs {{ number_format($staff->total_earned_commission, 2) }}</td>
-                <td class="amount">Rs {{ number_format(($staff->base_salary ?? 0) + ($staff->total_earned_commission ?? 0), 2) }}</td>
+                <td style="color:#a16207; font-weight:600;">Rs {{ number_format($staff->current_cycle_advances, 2) }}</td>
+                <td style="color:#b91c1c; font-weight:600;">Rs {{ number_format($staff->current_cycle_deductions, 2) }}</td>
+                <td class="amount">Rs {{ number_format($staff->net_salary_payable, 2) }}</td>
                 <td>
                     @if($staff->last_paid_at)
                         {{ $staff->last_paid_at->format('M d, Y') }}
@@ -113,7 +115,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="6" style="text-align:center;padding:40px;color:#94a3b8;">No salary records match your search.</td>
+                <td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;">No salary records match your search.</td>
             </tr>
             @endforelse
         </tbody>

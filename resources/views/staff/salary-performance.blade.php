@@ -316,7 +316,7 @@
     </div>
 
     {{-- Stats Cards --}}
-    <div class="stats-grid">
+    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));">
         <div class="stat-card">
             <div class="stat-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg></div>
             <div class="stat-lbl">Base Salary</div>
@@ -327,15 +327,79 @@
             <div class="stat-lbl">Earned Commission</div>
             <div class="stat-val" style="color: var(--ydark);">PKR {{ number_format($staff->total_earned_commission, 2) }}</div>
         </div>
+        <div class="stat-card" style="background:#fefce8; border-color:#fef08a;">
+            <div class="stat-icon" style="background:#fef08a; color:#854d0e;"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg></div>
+            <div class="stat-lbl" style="color:#854d0e;">Advances Taken</div>
+            <div class="stat-val" style="color:#a16207;">PKR {{ number_format($staff->current_cycle_advances, 2) }}</div>
+        </div>
+        <div class="stat-card" style="background:#fef2f2; border-color:#fecaca;">
+            <div class="stat-icon" style="background:#fecaca; color:#991b1b;"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+            <div class="stat-lbl" style="color:#991b1b;">Deductions</div>
+            <div class="stat-val" style="color:#b91c1c;">PKR {{ number_format($staff->current_cycle_deductions, 2) }}</div>
+        </div>
         <div class="stat-card" style="background: var(--ybg);">
             <div class="stat-icon" style="background: var(--y1); color: var(--ydark);"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 8h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
-            <div class="stat-lbl">Total Outstanding</div>
-            <div class="stat-val" style="color: #16a34a;">PKR {{ number_format($staff->base_salary + $staff->total_earned_commission, 2) }}</div>
+            <div class="stat-lbl">Net Due Payable</div>
+            <div class="stat-val" style="color: #16a34a;">PKR {{ number_format($staff->net_salary_payable, 2) }}</div>
         </div>
-        <div class="stat-card" style="background: #f0f9ff; border-color: #bae6fd;">
-            <div class="stat-icon" style="background: #bae6fd; color: #0369a1;"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
-            <div class="stat-lbl" style="color: #0369a1;">Cycle Duration</div>
-            <div class="stat-val" style="color: #0369a1;">{{ $staff->days_since_last_payment }} Days</div>
+    </div>
+
+    {{-- Salary & Advances Payment History --}}
+    <div class="panel">
+        <div class="panel-head">
+            <div class="panel-title">
+                <div class="panel-icon"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+                Salary & Advance Payment History
+            </div>
+        </div>
+        <div class="panel-body">
+            @if(isset($staffExpenses) && $staffExpenses->count() > 0)
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Type / Category</th>
+                            <th>Description</th>
+                            <th>Amount</th>
+                            <th>Drawer Cash</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($staffExpenses as $exp)
+                            <tr>
+                                <td style="color:#71717a; font-size:0.8rem;">{{ $exp->created_at->format('M d, Y h:i A') }}</td>
+                                <td>
+                                    @if(in_array($exp->category, ['full_salary', 'salary']))
+                                        <span style="background:#dcfce7; color:#166534; padding:2px 8px; border-radius:6px; font-weight:700; font-size:0.75rem;">Full Salary</span>
+                                    @elseif(in_array($exp->category, ['advance', 'salary_advance']))
+                                        <span style="background:#fef9c3; color:#854d0e; padding:2px 8px; border-radius:6px; font-weight:700; font-size:0.75rem;">Advance</span>
+                                    @elseif($exp->category === 'deduction')
+                                        <span style="background:#fee2e2; color:#991b1b; padding:2px 8px; border-radius:6px; font-weight:700; font-size:0.75rem;">Deduction</span>
+                                    @else
+                                        <span style="background:#f1f5f9; color:#475569; padding:2px 8px; border-radius:6px; font-weight:700; font-size:0.75rem;">{{ ucfirst($exp->category ?? 'Expense') }}</span>
+                                    @endif
+                                </td>
+                                <td style="font-size:0.82rem; color:#334155;">{{ $exp->description }}</td>
+                                <td style="font-weight:700; color:#16a34a;">PKR {{ number_format($exp->amount, 2) }}</td>
+                                <td>
+                                    @if($exp->deducted_from_drawer)
+                                        <span style="color:#0284c7; font-weight:600; font-size:0.75rem;">Yes</span>
+                                    @else
+                                        <span style="color:#94a3b8; font-size:0.75rem;">No</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+                <div style="padding: 16px 20px;">
+                    {{ $staffExpenses->appends(request()->except('expenses_page'))->links() }}
+                </div>
+            @else
+                <div class="empty-state">
+                    <div style="font-weight:600;">No salary or advance payments recorded yet for {{ $staff->name }}.</div>
+                </div>
+            @endif
         </div>
     </div>
 

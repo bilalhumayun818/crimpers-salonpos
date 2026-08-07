@@ -317,20 +317,35 @@ class StaffController extends Controller
         $invoices = \App\Models\Invoice::where('staff_id', $staff->id)
             ->with(['customer', 'items.itemizable'])
             ->latest()
-            ->paginate(15);
+            ->paginate(15, ['*'], 'invoices_page');
 
-        return view('staff.salary-performance', compact('staff', 'invoices'));
+        $staffExpenses = \App\Models\Expense::where('staff_id', $staff->id)
+            ->latest()
+            ->paginate(10, ['*'], 'expenses_page');
+
+        return view('staff.salary-performance', compact('staff', 'invoices', 'staffExpenses'));
     }
 
     public function paySalary(Staff $staff)
     {
-        $totalPaid = $staff->base_salary + $staff->total_earned_commission;
+        $base = (float) ($staff->base_salary ?? 0);
+        $comm = (float) ($staff->total_earned_commission ?? 0);
+        $adv  = $staff->current_cycle_advances;
+        $ded  = $staff->current_cycle_deductions;
+        $netPaid = $staff->net_salary_payable;
 
         // Record the expense in the expenses history
         \App\Models\Expense::create([
             'branch_id' => auth()->user()->branch_id ?? 1,
-            'description' => "Salary Paid to " . $staff->name . " (Base: PKR " . number_format($staff->base_salary, 2) . ", Commission: PKR " . number_format($staff->total_earned_commission, 2) . ")",
-            'amount' => $totalPaid,
+            'expense_type' => 'staff',
+            'category' => 'full_salary',
+            'staff_id' => $staff->id,
+            'description' => "Full Salary Paid to " . $staff->name . " (Base: PKR " . number_format($base, 2) . 
+                             ", Commission: PKR " . number_format($comm, 2) . 
+                             ", Advances: PKR " . number_format($adv, 2) . 
+                             ", Deductions: PKR " . number_format($ded, 2) . 
+                             ", Net Paid: PKR " . number_format($netPaid, 2) . ")",
+            'amount' => $netPaid,
             'deducted_from_drawer' => false,
             'user_id' => auth()->id() ?? 1,
         ]);

@@ -201,10 +201,17 @@ input:checked + .slider:before{transform:translateX(26px);}
                 <div class="tab-content" id="staff-tab">
                     <div class="f-row">
                         <label class="f-label">Select Staff Member *</label>
-                        <select name="staff_id" class="f-select" id="staff-select">
+                        <select name="staff_id" class="f-select" id="staff-select" onchange="updateStaffCalculations()">
                             <option value="">-- Choose Staff --</option>
                             @foreach($staff as $member)
-                                <option value="{{ $member->id }}">{{ $member->name }}</option>
+                                <option value="{{ $member->id }}"
+                                        data-base="{{ number_format($member->base_salary ?? 0, 2, '.', '') }}"
+                                        data-comm="{{ number_format($member->total_earned_commission ?? 0, 2, '.', '') }}"
+                                        data-adv="{{ number_format($member->current_cycle_advances ?? 0, 2, '.', '') }}"
+                                        data-ded="{{ number_format($member->current_cycle_deductions ?? 0, 2, '.', '') }}"
+                                        data-net="{{ number_format($member->net_salary_payable ?? 0, 2, '.', '') }}">
+                                    {{ $member->name }}
+                                </option>
                             @endforeach
                         </select>
                         <div style="color:#ef4444;font-size:.75rem;margin-top:6px;font-weight:600;display:none;" class="err-staff-id"></div>
@@ -212,22 +219,47 @@ input:checked + .slider:before{transform:translateX(26px);}
 
                     <div class="f-row">
                         <label class="f-label">Expense Type *</label>
-                        <select name="staff_category" class="f-select" id="staff-cat">
-                            <option value="">-- Choose Type --</option>
-                            <option value="salary">💰 Full Salary Payment (Resets Commission Cycle)</option>
-                            <option value="salary_advance">Salary Advance (Resets Commission Cycle)</option>
-                            <option value="bonus">Bonus</option>
-                            <option value="allowance">Allowance</option>
-                            <option value="deduction">Deduction</option>
-                            <option value="incentive">Incentive</option>
-                            <option value="other">Other</option>
-                        </select>
+                        <input type="hidden" name="staff_category" id="staff-cat" value="full_salary">
+                        <div class="category-opts">
+                            <button type="button" class="staff-cat-btn cat-btn selected" onclick="selectStaffCategory('full_salary', this)" title="Full Salary">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                                <span>Full Salary</span>
+                            </button>
+                            <button type="button" class="staff-cat-btn cat-btn" onclick="selectStaffCategory('advance', this)" title="Salary Advance">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                                <span>Advance</span>
+                            </button>
+                            <button type="button" class="staff-cat-btn cat-btn" onclick="selectStaffCategory('deduction', this)" title="Deduction">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>
+                                <span>Deduction</span>
+                            </button>
+                            <button type="button" class="staff-cat-btn cat-btn" onclick="selectStaffCategory('other', this)" title="Other">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                                <span>Other</span>
+                            </button>
+                        </div>
                         <div style="color:#ef4444;font-size:.75rem;margin-top:6px;font-weight:600;display:none;" class="err-staff-cat"></div>
+                    </div>
+
+                    <div id="salary-breakdown-info" style="display:none; margin-bottom:20px; padding:14px 16px; background:#fffdf0; border:1.5px solid #f0e8a0; border-radius:12px; font-size:0.85rem; color:#1e293b;">
+                        <div style="font-weight:800; color:#a07800; margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            Salary Breakdown Summary
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:0.8rem; color:#475569;">
+                            <div>Base Salary: <strong style="color:#1e293b;" id="sb-base">Rs. 0.00</strong></div>
+                            <div>Earned Commission: <strong style="color:#0284c7;" id="sb-comm">Rs. 0.00</strong></div>
+                            <div>Advances Taken: <strong style="color:#eab308;" id="sb-adv">Rs. 0.00</strong></div>
+                            <div>Deductions: <strong style="color:#ef4444;" id="sb-ded">Rs. 0.00</strong></div>
+                        </div>
+                        <div style="border-top:1px dashed #cbd5e1; margin-top:8px; padding-top:6px; font-weight:800; color:#16a34a; font-size:0.9rem;">
+                            Net Payable: <span id="sb-net">Rs. 0.00</span>
+                        </div>
                     </div>
 
                     <div class="f-row">
                         <label class="f-label">Description</label>
-                        <textarea name="description_staff" class="f-input" placeholder="e.g., Advance payment for emergency..." id="desc-staff"></textarea>
+                        <textarea name="description_staff" class="f-input" placeholder="e.g., Monthly salary payment or advance note..." id="desc-staff"></textarea>
                         <div style="color:#ef4444;font-size:.75rem;margin-top:6px;font-weight:600;display:none;" class="err-staff-desc"></div>
                     </div>
 
@@ -282,6 +314,58 @@ function selectCategory(cat) {
     document.getElementById('category').value = cat;
 }
 
+function selectStaffCategory(cat, btn) {
+    document.querySelectorAll('.staff-cat-btn').forEach(el => el.classList.remove('selected'));
+    if (btn) {
+        btn.classList.add('selected');
+    }
+    document.getElementById('staff-cat').value = cat;
+    updateStaffCalculations();
+}
+
+function updateStaffCalculations() {
+    const staffSelect = document.getElementById('staff-select');
+    const staffCat = document.getElementById('staff-cat').value;
+    const amtInput = document.getElementById('amt-staff');
+    const infoBox = document.getElementById('salary-breakdown-info');
+
+    const selectedOption = staffSelect.options[staffSelect.selectedIndex];
+
+    if (!selectedOption || !selectedOption.value) {
+        infoBox.style.display = 'none';
+        amtInput.readOnly = false;
+        amtInput.style.background = '#f8fafc';
+        return;
+    }
+
+    const base = parseFloat(selectedOption.getAttribute('data-base') || 0);
+    const comm = parseFloat(selectedOption.getAttribute('data-comm') || 0);
+    const adv  = parseFloat(selectedOption.getAttribute('data-adv') || 0);
+    const ded  = parseFloat(selectedOption.getAttribute('data-ded') || 0);
+    const net  = parseFloat(selectedOption.getAttribute('data-net') || 0);
+
+    document.getElementById('sb-base').textContent = 'Rs. ' + base.toLocaleString('en-US', {minimumFractionDigits:2});
+    document.getElementById('sb-comm').textContent = 'Rs. ' + comm.toLocaleString('en-US', {minimumFractionDigits:2});
+    document.getElementById('sb-adv').textContent  = 'Rs. ' + adv.toLocaleString('en-US', {minimumFractionDigits:2});
+    document.getElementById('sb-ded').textContent  = 'Rs. ' + ded.toLocaleString('en-US', {minimumFractionDigits:2});
+    document.getElementById('sb-net').textContent  = 'Rs. ' + net.toLocaleString('en-US', {minimumFractionDigits:2});
+
+    if (staffCat === 'full_salary' || staffCat === 'salary') {
+        infoBox.style.display = 'block';
+        amtInput.value = net.toFixed(2);
+        amtInput.readOnly = true;
+        amtInput.style.background = '#e2e8f0';
+    } else {
+        if (staffCat === 'advance' || staffCat === 'deduction' || staffCat === 'other') {
+            infoBox.style.display = 'block';
+        } else {
+            infoBox.style.display = 'none';
+        }
+        amtInput.readOnly = false;
+        amtInput.style.background = '#f8fafc';
+    }
+}
+
 function prepareSubmit() {
     // Clear all error messages
     document.querySelectorAll('[class*="err-"]').forEach(el => el.style.display = 'none');
@@ -314,7 +398,7 @@ function prepareSubmit() {
         
         if (!staffId) { document.querySelector('.err-staff-id').textContent = 'Staff member required'; document.querySelector('.err-staff-id').style.display = 'block'; return false; }
         if (!staffCat) { document.querySelector('.err-staff-cat').textContent = 'Expense type required'; document.querySelector('.err-staff-cat').style.display = 'block'; return false; }
-        if (!amt || amt <= 0) { document.querySelector('.err-amt-staff').textContent = 'Valid amount required'; document.querySelector('.err-amt-staff').style.display = 'block'; return false; }
+        if (amt === '' || amt === null || parseFloat(amt) < 0) { document.querySelector('.err-amt-staff').textContent = 'Valid amount required'; document.querySelector('.err-amt-staff').style.display = 'block'; return false; }
         
         document.getElementById('category').value = staffCat;
         document.getElementById('form_staff_id').value = staffId;
