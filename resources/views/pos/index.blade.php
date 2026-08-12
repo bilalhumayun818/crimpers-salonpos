@@ -704,8 +704,13 @@
           {{-- Packages --}}
           @if(isset($packages))
             @foreach($packages as $pkg)
+              @php
+                $pkgServicesTotal = $pkg->services->sum('price');
+                $pkgOriginalPrice = $pkgServicesTotal > 0 ? $pkgServicesTotal : $pkg->price;
+              @endphp
               <div class="item-card pkg-card" data-id="{{ $pkg->id }}" data-type="package" data-name="{{ $pkg->name }}"
-                data-price="{{ $pkg->price }}" data-filter="type-package" data-peak-enabled="{{ $pkg->peak_pricing_enabled }}"
+                data-price="{{ $pkg->price }}" data-original-price="{{ $pkgOriginalPrice }}"
+                data-filter="type-package" data-peak-enabled="{{ $pkg->peak_pricing_enabled }}"
                 data-peak-price="{{ $pkg->peak_price }}" data-peak-start="{{ $pkg->peak_start }}"
                 data-peak-end="{{ $pkg->peak_end }}" data-levels-enabled="{{ $pkg->pricing_levels_enabled ? '1' : '0' }}"
                 data-levels="{{ json_encode($pkg->pricing_levels ?? ['junior' => $pkg->price, 'senior' => $pkg->price, 'master' => $pkg->price]) }}">
@@ -717,7 +722,14 @@
                 </div>
                 <div class="item-name">{{ $pkg->name }}</div>
                 <div class="item-meta">{{ $pkg->duration }} mins · {{ $pkg->services->count() }} services</div>
-                <div class="item-price" id="price-pkg-{{ $pkg->id }}">PKR {{ number_format($pkg->price, 2) }}</div>
+                @if($pkgOriginalPrice > $pkg->price)
+                  <div class="item-price" id="price-pkg-{{ $pkg->id }}">
+                    <span style="text-decoration:line-through; font-size:0.75em; opacity:0.55;">PKR {{ number_format($pkgOriginalPrice, 0) }}</span>
+                    <span style="color:#22c55e; font-size:1rem; font-weight:800;"> PKR {{ number_format($pkg->price, 0) }}</span>
+                  </div>
+                @else
+                  <div class="item-price" id="price-pkg-{{ $pkg->id }}">PKR {{ number_format($pkg->price, 2) }}</div>
+                @endif
               </div>
             @endforeach
           @endif
@@ -1072,18 +1084,20 @@
       document.querySelectorAll('.item-card').forEach(card => {
         card.addEventListener('click', () => {
           const { id, type, name, currentPrice, levels, levelsEnabled } = card.dataset;
+          const origPrice = card.dataset.originalPrice ? parseFloat(card.dataset.originalPrice) : parseFloat(currentPrice);
 
           if ((type === 'service' || type === 'package') && levelsEnabled === '1') {
             pendingItem = {
               id, type, name,
               basePrice: parseFloat(currentPrice),
+              origPrice: origPrice,
               levels: JSON.parse(levels),
               peakActive: card.dataset.peakActive === "1",
               peakSurcharge: parseFloat(card.dataset.peakPrice || 0)
             };
             showTierModal(pendingItem);
           } else {
-            addToCart(id, type, name, parseFloat(currentPrice));
+            addToCart(id, type, name, parseFloat(currentPrice), origPrice);
           }
         });
       });
@@ -1112,16 +1126,23 @@
           btn.onclick = () => {
             const tier = btn.dataset.tier;
             const price = btn.dataset.calculatedPrice;
-            addToCart(item.id, item.type, `${item.name} (${tier.charAt(0).toUpperCase() + tier.slice(1)})`, price);
+            addToCart(item.id, item.type, `${item.name} (${tier.charAt(0).toUpperCase() + tier.slice(1)})`, price, item.origPrice);
             modal.style.display = 'none';
           };
         });
       }
 
-      function addToCart(id, type, name, price) {
+      function addToCart(id, type, name, price, origPrice) {
+        price = parseFloat(price);
+        origPrice = origPrice ? parseFloat(origPrice) : price;
         const ex = cart.find(i => i.id === id && i.type === type && i.name === name);
-        ex ? (ex.qty++, ex.sub = ex.qty * ex.price)
-          : cart.push({ id, type, name, price: parseFloat(price), qty: 1, sub: parseFloat(price) });
+        if (ex) {
+          ex.qty++;
+          ex.sub = ex.qty * ex.price;
+          ex.origSub = ex.qty * ex.origPrice;
+        } else {
+          cart.push({ id, type, name, price, origPrice, qty: 1, sub: price, origSub: origPrice });
+        }
         renderCart();
       }
 
@@ -1162,6 +1183,7 @@
             if (isNaN(newQty) || newQty < 1) newQty = 1;
             cart[i].qty = newQty;
             cart[i].sub = cart[i].qty * cart[i].price;
+            cart[i].origSub = cart[i].qty * (cart[i].origPrice || cart[i].price);
             renderCart();
           };
           // Prevent scrolling from changing value
@@ -1170,13 +1192,18 @@
 
         cartEl.querySelectorAll('.minus').forEach(b => b.onclick = e => {
           const i = parseInt(e.currentTarget.dataset.idx);
-          if (cart[i].qty > 1) { cart[i].qty--; cart[i].sub = cart[i].qty * cart[i].price; }
-          else cart.splice(i, 1);
+          if (cart[i].qty > 1) {
+            cart[i].qty--;
+            cart[i].sub = cart[i].qty * cart[i].price;
+            cart[i].origSub = cart[i].qty * (cart[i].origPrice || cart[i].price);
+          } else cart.splice(i, 1);
           renderCart();
         });
         cartEl.querySelectorAll('.plus').forEach(b => b.onclick = e => {
           const i = parseInt(e.currentTarget.dataset.idx);
-          cart[i].qty++; cart[i].sub = cart[i].qty * cart[i].price;
+          cart[i].qty++;
+          cart[i].sub = cart[i].qty * cart[i].price;
+          cart[i].origSub = cart[i].qty * (cart[i].origPrice || cart[i].price);
           renderCart();
         });
       }
@@ -1193,14 +1220,22 @@
 
         const sub = cart.reduce((s, i) => s + i.sub, 0);
         const tax = 0; // No GST
-        const finalTotal = sub;
+
+        // Auto-calculate package discount: sum of (originalPrice - price) for all packages
+        // This is the "saving" the client gets from bundled package pricing
+        const packageDiscount = cart.reduce((s, i) => {
+          if (i.type === 'package' && i.origPrice && i.origPrice > i.price) {
+            return s + ((i.origPrice - i.price) * i.qty);
+          }
+          return s;
+        }, 0);
 
         const checkoutData = {
           cart: cart,
           subtotal: sub,
           tax: tax,
-          discount: 0,
-          payable_amount: finalTotal, // Will add pending balance in payment.blade.php
+          discount: packageDiscount,   // auto discount from packages
+          payable_amount: sub,
           customerName: custNameInput.value || 'Walk-in Customer',
           customerPhone: custPhoneInput.value || '',
           customer_id: activeCustomer ? activeCustomer.id : null,

@@ -635,10 +635,10 @@
       </div>
 
       <div class="totals-strip">
-        <div class="t-row"><span>Subtotal</span><span class="v" id="t-sub">PKR 0.00</span></div>
+        <div class="t-row"><span>Original Total (Services)</span><span class="v" id="t-sub">PKR 0.00</span></div>
         {{-- Tax row hidden - No GST --}}
-        <div class="t-row" id="t-disc-row" style="display:none;"><span>Discount</span><span class="v"
-            style="color:#ef4444;" id="t-disc">-PKR 0.00</span></div>
+        <div class="t-row" id="t-disc-row" style="display:none;"><span style="color:#22c55e; font-weight:700;">🏷 Package Savings / Discount</span><span class="v"
+            style="color:#22c55e;" id="t-disc">-PKR 0.00</span></div>
         <div class="t-row" id="t-prev-bal-row" style="display:none;">
           <span style="color:#ef4444; font-weight:700;">⚠ Previous Balance</span>
           <span class="v" style="color:#ef4444; font-weight:700;" id="t-prev-bal">+PKR 0.00</span>
@@ -702,7 +702,7 @@
         </div>
 
         <div class="f-grp">
-          <span class="f-lbl">Discount Amount (PKR)</span>
+          <span class="f-lbl">Discount Amount (PKR) <span id="pkg-disc-badge" style="display:none; background:#dcfce7; color:#15803d; padding:2px 7px; border-radius:99px; font-size:0.6rem; font-weight:800; text-transform:uppercase;">Auto from Package</span></span>
           <div class="f-prewrap">
             <span class="f-pre">PKR</span>
             <input type="number" id="pay-disc" class="f-input pl" placeholder="0.00" min="0" step="1">
@@ -877,13 +877,22 @@
 
       var session = JSON.parse(raw);
       var cart = session.cart || [];
-      var currentDiscount = session.discount || 0;
+      // Package discount is auto-calculated from bundle savings, plus any manual discount
+      var packageDiscount = parseFloat(session.discount || 0); // auto-calculated in index.blade
+      var currentDiscount = packageDiscount;                   // can be increased manually
       var currentMethod = 'cash';
       var previousBalance = parseFloat(session.pending_balance || 0);
 
       // Customer
       document.getElementById('cust-pill').textContent = session.customerName || 'Walk-in Customer';
-      if (currentDiscount > 0) document.getElementById('pay-disc').value = currentDiscount;
+      // Pre-fill discount input with auto package discount (locked as minimum)
+      if (currentDiscount > 0) {
+        document.getElementById('pay-disc').value = currentDiscount.toFixed(2);
+        document.getElementById('pay-disc').setAttribute('min', currentDiscount.toFixed(2));
+        document.getElementById('pay-disc').setAttribute('title', 'Minimum ' + currentDiscount.toFixed(2) + ' PKR (auto from package savings)');
+        var badge = document.getElementById('pkg-disc-badge');
+        if (badge) badge.style.display = 'inline';
+      }
 
       // Show previous balance alert banner
       if (previousBalance > 0) {
@@ -896,19 +905,36 @@
 
       // ─── Helpers ───────────────────────────────────────────
       function getSubtotal() {
+        // Subtotal is the ORIGINAL price sum (what services are worth) — shown for reference
+        return cart.reduce(function (s, i) {
+          return s + (i.origSub || i.sub);
+        }, 0);
+      }
+
+      function getActualSubtotal() {
+        // What the client actually pays before discount
         return cart.reduce(function (s, i) { return s + i.sub; }, 0);
       }
 
       function getPayable() {
-        var sub = getSubtotal();
+        var origSub = getSubtotal();         // original full-price total (e.g. 6400) — display only
+        var actualSub = getActualSubtotal();  // package-price total (e.g. 5000) — already discounted
         var tax = 0; // No GST
-        var pay = sub - currentDiscount + previousBalance;
+
+        // The packageDiscount (1400) is already baked into the package price (5000).
+        // So we must NOT subtract it again from actualSub.
+        // Only subtract any EXTRA manual discount the cashier adds beyond the auto package discount.
+        var extraManualDiscount = currentDiscount - packageDiscount;
+        if (extraManualDiscount < 0) extraManualDiscount = 0;
+
+        var pay = actualSub - extraManualDiscount + previousBalance;
         if (pay < 0) pay = 0;
-        return { sub: sub, tax: tax, pay: pay };
+        return { sub: origSub, actualSub: actualSub, tax: tax, pay: pay };
       }
 
       function updateTotals() {
         var r = getPayable();
+        // Show original subtotal (full service prices)
         document.getElementById('t-sub').textContent = 'PKR ' + r.sub.toFixed(2);
         document.getElementById('t-total').textContent = 'PKR ' + r.pay.toFixed(2);
 
@@ -1041,7 +1067,16 @@
               else { cart.splice(idx, 1); renderItems(); return; }
             }
             cart[idx].sub = cart[idx].qty * cart[idx].price;
+            if (cart[idx].origPrice) cart[idx].origSub = cart[idx].qty * cart[idx].origPrice;
             document.getElementById('q-' + idx).textContent = cart[idx].qty;
+            document.getElementById('p-' + idx).textContent = 'PKR ' + cart[idx].sub.toFixed(2);
+            // Recalculate auto package discount
+            packageDiscount = cart.reduce(function(s, i) {
+              if (i.type === 'package' && i.origPrice && i.origPrice > i.price) return s + ((i.origPrice - i.price) * i.qty);
+              return s;
+            }, 0);
+            if (currentDiscount < packageDiscount) currentDiscount = packageDiscount;
+            document.getElementById('pay-disc').value = packageDiscount > 0 ? packageDiscount.toFixed(2) : (currentDiscount > 0 ? currentDiscount.toFixed(2) : '');
             document.getElementById('p-' + idx).textContent = 'PKR ' + cart[idx].sub.toFixed(2);
             updateTotals();
           };
@@ -1054,7 +1089,13 @@
 
       // ─── Discount ───────────────────────────────────────────
       document.getElementById('pay-disc').addEventListener('input', function (e) {
-        currentDiscount = parseFloat(e.target.value) || 0;
+        var typed = parseFloat(e.target.value) || 0;
+        // Never allow discount below the auto package savings
+        if (typed < packageDiscount) {
+          typed = packageDiscount;
+          e.target.value = packageDiscount.toFixed(2);
+        }
+        currentDiscount = typed;
         updateTotals();
         if (typeof autoBalanceAllocations === 'function') {
             autoBalanceAllocations(null);
@@ -1102,17 +1143,9 @@
 
       // ─── Staff Allocations ────────────────────────────────────
       function getAvailableCommissionPool() {
-          var totalServiceAmount = cart.filter(function(i) { return i.type === 'service' || i.type === 'package'; }).reduce(function(s, i) { return s + i.sub; }, 0);
-          
-          var sub = getSubtotal();
-          if (sub <= 0) return 0;
-          
-          // Discount reduces the service pool proportionally
-          var pay = sub - currentDiscount; 
-          if (pay < 0) pay = 0;
-          var discountRatio = pay / sub;
-          
-          return totalServiceAmount * discountRatio;
+          // Commission is ALWAYS based on original full service prices (not discounted package price)
+          return cart.filter(function(i) { return i.type === 'service' || i.type === 'package'; })
+                     .reduce(function(s, i) { return s + (i.origSub || i.sub); }, 0);
       }
 
       function autoBalanceAllocations(changedInput) {
@@ -1354,6 +1387,11 @@
       document.getElementById('close-modal').onclick = function () {
         localStorage.removeItem('pos_checkout_session');
         window.location.href = "{{ route('pos.index') }}";
+      };
+
+    });
+  </script>
+@endpushwindow.location.href = "{{ route('pos.index') }}";
       };
 
     });
