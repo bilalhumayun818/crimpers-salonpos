@@ -164,6 +164,9 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy')->middleware('permission:inventory,delete');
         Route::get('/products/{product}/adjust-stock', [ProductController::class, 'showAdjustStock'])->name('products.adjust-stock.form')->middleware('permission:inventory,edit');
         Route::post('/products/{product}/adjust-stock', [ProductController::class, 'adjustStock'])->name('products.adjust-stock')->middleware('permission:inventory,edit');
+        Route::put('/purchase-items/{item}', [ProductController::class, 'updateAdjustment'])->name('products.adjustments.update')->middleware('permission:inventory,edit');
+        Route::delete('/purchase-items/{item}', [ProductController::class, 'destroyAdjustment'])->name('products.adjustments.destroy')->middleware('permission:inventory,delete');
+
 
         Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
         Route::get('/services/create', [ServiceController::class, 'create'])->name('services.create');

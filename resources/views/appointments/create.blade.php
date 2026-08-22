@@ -44,6 +44,16 @@ textarea.f-input{resize:vertical;min-height:90px;}
       <div class="edit-card-title">Appointment Details</div>
     </div>
     <div class="edit-card-body">
+      @if ($errors->any())
+        <div style="background:#fef2f2; border:1px solid #fca5a5; border-radius:10px; padding:14px; margin-bottom:20px;">
+          <h4 style="color:#dc2626; margin-top:0; margin-bottom:8px; font-size:.9rem;">There were some problems with your input:</h4>
+          <ul style="color:#b91c1c; font-size:.85rem; margin:0; padding-left:20px;">
+            @foreach ($errors->all() as $error)
+              <li>{{ $error }}</li>
+            @endforeach
+          </ul>
+        </div>
+      @endif
       <form method="POST" action="{{ route('appointments.store') }}">
         @csrf
         <div class="f-row" style="position:relative;">

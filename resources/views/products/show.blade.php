@@ -59,6 +59,30 @@
 .status-received{background:#dcfce7;color:#166534;}
 .status-pending{background:#fef3c7;color:#92400e;}
 .status-partial{background:#fed7aa;color:#92400e;}
+.status-cancelled{background:#fee2e2;color:#991b1b;}
+
+.btn-tbl-act{padding:4px 10px;border-radius:7px;font-size:.75rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;border:none;font-family:'Outfit',sans-serif;transition:.12s;}
+.btn-tbl-edit{background:var(--y2);color:var(--ydark);border:1px solid var(--y1);}
+.btn-tbl-edit:hover{background:var(--y1);}
+.btn-tbl-del{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;margin-left:4px;}
+.btn-tbl-del:hover{background:#fee2e2;}
+
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:99999;padding:16px;}
+.modal-card{background:#fff;border-radius:16px;max-width:460px;width:100%;padding:24px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.1),0 8px 10px -6px rgba(0,0,0,0.1);border:1.5px solid #f0e8a0;animation:modalIn .15s ease-out;}
+@keyframes modalIn{from{opacity:0;transform:scale(.95);}to{opacity:1;transform:scale(1);}}
+.modal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+.modal-title{font-size:1.1rem;font-weight:800;color:#18181b;}
+.modal-close{background:none;border:none;font-size:1.4rem;color:#71717a;cursor:pointer;line-height:1;}
+.modal-close:hover{color:#18181b;}
+.mform-group{margin-bottom:14px;}
+.mform-lbl{display:block;font-size:.78rem;font-weight:700;color:#52525b;margin-bottom:5px;text-transform:uppercase;letter-spacing:.03em;}
+.mform-inp{width:100%;padding:9px 12px;border-radius:9px;border:1.5px solid #e4e4e7;font-size:.85rem;outline:none;transition:.15s;font-family:inherit;}
+.mform-inp:focus{border-color:var(--ydark);box-shadow:0 0 0 3px rgba(247,223,121,.3);}
+.modal-ftr{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;}
+.btn-sec{padding:8px 16px;background:#f4f4f5;color:#52525b;border:1px solid #e4e4e7;border-radius:9px;font-weight:700;font-size:.82rem;cursor:pointer;}
+.btn-sec:hover{background:#e4e4e7;}
+.btn-pri{padding:8px 16px;background:#18181b;color:#fff;border:none;border-radius:9px;font-weight:700;font-size:.82rem;cursor:pointer;}
+.btn-pri:hover{background:#3f3f46;}
 
 .empty-state{text-align:center;padding:40px 20px;color:#a1a1aa;}
 .empty-icon{font-size:2rem;margin-bottom:10px;opacity:.5;}
@@ -275,8 +299,10 @@
                         <th>Supplier</th>
                         <th>Quantity</th>
                         <th>Unit Cost</th>
+                        <th>Selling Price</th>
                         <th>Total</th>
                         <th>Status</th>
+                        <th style="text-align:right;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -284,15 +310,44 @@
                     @php
                         $purchase = $item->purchase;
                         $status = $purchase->status ?? 'pending';
-                        $statusClass = $status === 'received' ? 'status-received' : ($status === 'partial' ? 'status-partial' : 'status-pending');
+                        $statusClass = $status === 'received' ? 'status-received' : ($status === 'partial' ? 'status-partial' : ($status === 'cancelled' || $status === 'deleted' ? 'status-cancelled' : 'status-pending'));
                     @endphp
                     <tr>
                         <td class="tbl-date">{{ $purchase->order_date?->format('M d, Y') ?: '—' }}</td>
                         <td class="tbl-name">{{ $purchase->supplier?->name ?? '—' }}</td>
-                        <td class="tbl-qty">{{ $item->quantity_ordered }}</td>
+                        <td class="tbl-qty">
+                            @if($item->quantity_ordered > 0)
+                                <span style="color:#16a34a; font-weight:800; display:inline-flex; align-items:center; gap:2px;">
+                                    +{{ $item->quantity_ordered }}
+                                </span>
+                            @elseif($item->quantity_ordered < 0)
+                                <span style="color:#dc2626; font-weight:800; display:inline-flex; align-items:center; gap:2px;">
+                                    {{ $item->quantity_ordered }}
+                                </span>
+                            @else
+                                <span>0</span>
+                            @endif
+                        </td>
                         <td class="tbl-price">PKR {{ number_format($item->unit_cost, 2) }}</td>
-                        <td class="tbl-price"><strong>PKR {{ number_format($item->unit_cost * $item->quantity_ordered, 2) }}</strong></td>
+                        <td class="tbl-price" style="color:var(--ydark);">PKR {{ number_format($item->unit_selling_price ?? $product->selling_price, 2) }}</td>
+                        <td class="tbl-price" style="{{ $item->quantity_ordered < 0 ? 'color:#dc2626;' : '' }}">
+                            <strong>PKR {{ number_format(abs($item->unit_cost * $item->quantity_ordered), 2) }}</strong>
+                            @if($item->quantity_ordered < 0)
+                                <span style="font-size:0.68rem; color:#dc2626; font-weight:700; display:block;">(Removed)</span>
+                            @endif
+                        </td>
                         <td><span class="tbl-status {{ $statusClass }}">{{ ucfirst($status) }}</span></td>
+                        <td style="text-align:right; white-space:nowrap;">
+                            <button type="button" class="btn-tbl-act btn-tbl-edit" onclick="openAdjModal('{{ route('products.adjustments.update', $item) }}', '{{ $item->quantity_ordered }}', '{{ $item->unit_cost }}', '{{ $item->unit_selling_price ?? $product->selling_price }}', '{{ addslashes($purchase->notes ?? '') }}', '{{ $purchase->supplier_id }}')">
+                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit
+                            </button>
+                            <form method="POST" action="{{ route('products.adjustments.destroy', $item) }}" onsubmit="return confirm('Are you sure you want to delete/cancel this purchase/adjustment record? Stock will be updated accordingly.');" style="display:inline-block; margin:0;">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="btn-tbl-act btn-tbl-del">
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg> Delete
+                                </button>
+                            </form>
+                        </td>
                     </tr>
                     @endforeach
                 </tbody>
@@ -305,4 +360,143 @@
         </div>
     @endif
 </div>
+
+<!-- STOCK & PRICE CHANGE HISTORY TABLE -->
+<div class="tbl-card">
+    <div class="tbl-title">
+        <div class="tbl-title-icon"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V6m0 12v-2m-9-1h18"/></svg></div>
+        Stock &amp; Price Change History
+    </div>
+    @if($product->priceHistories->count() > 0)
+        <div class="tbl-container">
+            <table class="tbl-main">
+                <thead>
+                    <tr>
+                        <th>Date &amp; Time</th>
+                        <th>Action / Reason</th>
+                        <th>Stock Change</th>
+                        <th>Selling Price</th>
+                        <th>Cost Price</th>
+                        <th>Changed By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($product->priceHistories()->latest()->get() as $ph)
+                    <tr>
+                        <td class="tbl-date">{{ $ph->created_at?->format('M d, Y h:i A') }}</td>
+                        <td class="tbl-name" style="font-size:0.85rem;">{{ $ph->reason ?: 'Stock / Price Adjustment' }}</td>
+                        <td style="font-weight:700;">
+                            @if($ph->old_stock !== null || $ph->new_stock !== null)
+                                @php
+                                    $diff = ($ph->new_stock ?? 0) - ($ph->old_stock ?? 0);
+                                @endphp
+                                <span style="{{ $diff > 0 ? 'color:#16a34a;' : ($diff < 0 ? 'color:#dc2626;' : 'color:#52525b;') }}">
+                                    {{ $ph->old_stock ?? 0 }} &rarr; {{ $ph->new_stock ?? 0 }}
+                                    ({{ $diff > 0 ? '+'.$diff : $diff }})
+                                </span>
+                            @else
+                                <span style="color:#a1a1aa;">—</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if($ph->old_selling_price != $ph->new_selling_price && $ph->old_selling_price !== null)
+                                <span style="font-size:0.8rem; color:#71717a; text-decoration:line-through;">PKR {{ number_format($ph->old_selling_price, 2) }}</span>
+                                <strong style="color:var(--ydark); margin-left:4px;">PKR {{ number_format($ph->new_selling_price, 2) }}</strong>
+                            @else
+                                <span style="color:#18181b;">PKR {{ number_format($ph->new_selling_price, 2) }}</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if($ph->old_cost_price != $ph->new_cost_price && $ph->old_cost_price !== null)
+                                <span style="font-size:0.8rem; color:#71717a; text-decoration:line-through;">PKR {{ number_format($ph->old_cost_price, 2) }}</span>
+                                <strong style="color:#18181b; margin-left:4px;">PKR {{ number_format($ph->new_cost_price, 2) }}</strong>
+                            @else
+                                <span style="color:#18181b;">PKR {{ number_format($ph->new_cost_price, 2) }}</span>
+                            @endif
+                        </td>
+                        <td class="tbl-name">{{ $ph->user?->name ?? 'System' }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @else
+        <div class="empty-state">
+            <div class="empty-icon">🏷️</div>
+            <p>No stock or price history recorded yet</p>
+        </div>
+    @endif
+</div>
+
+<!-- EDIT ADJUSTMENT / PURCHASE MODAL -->
+<div id="modal-edit-adj" class="modal-overlay">
+    <div class="modal-card">
+        <div class="modal-hdr">
+            <div class="modal-title">Edit Purchase / Adjustment</div>
+            <button type="button" class="modal-close" onclick="closeAdjModal()">&times;</button>
+        </div>
+        <form id="form-edit-adj" method="POST">
+            @csrf @method('PUT')
+            <div class="mform-group">
+                <label class="mform-lbl">Quantity (Positive for Add, Negative for Remove)</label>
+                <input type="number" step="1" name="quantity" id="adj-qty" class="mform-inp" required>
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="mform-group">
+                    <label class="mform-lbl">Unit Cost Price (PKR)</label>
+                    <input type="number" step="0.01" min="0" name="unit_cost" id="adj-cost" class="mform-inp">
+                </div>
+                <div class="mform-group">
+                    <label class="mform-lbl">Selling Price (PKR)</label>
+                    <input type="number" step="0.01" min="0" name="selling_price" id="adj-selling-price" class="mform-inp">
+                </div>
+            </div>
+            @if(isset($suppliers) && $suppliers->count() > 0)
+            <div class="mform-group">
+                <label class="mform-lbl">Supplier</label>
+                <select name="supplier_id" id="adj-supplier" class="mform-inp">
+                    <option value="">Select Supplier</option>
+                    @foreach($suppliers as $supplier)
+                        <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            @endif
+            <div class="mform-group">
+                <label class="mform-lbl">Notes</label>
+                <input type="text" name="notes" id="adj-notes" class="mform-inp" placeholder="Reason or notes">
+            </div>
+            <div class="modal-ftr">
+                <button type="button" class="btn-sec" onclick="closeAdjModal()">Cancel</button>
+                <button type="submit" class="btn-pri">Update Adjustment</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openAdjModal(actionUrl, qty, cost, sell, notes, supplierId) {
+    document.getElementById('form-edit-adj').action = actionUrl;
+    document.getElementById('adj-qty').value = qty;
+    document.getElementById('adj-cost').value = cost;
+    if (document.getElementById('adj-selling-price')) {
+        document.getElementById('adj-selling-price').value = sell || '';
+    }
+    document.getElementById('adj-notes').value = notes;
+    if (document.getElementById('adj-supplier')) {
+        document.getElementById('adj-supplier').value = supplierId || '';
+    }
+    document.getElementById('modal-edit-adj').style.display = 'flex';
+}
+function closeAdjModal() {
+    document.getElementById('modal-edit-adj').style.display = 'none';
+}
+
+window.onclick = function(event) {
+    var modalAdj = document.getElementById('modal-edit-adj');
+    if (event.target == modalAdj) {
+        closeAdjModal();
+    }
+};
+</script>
 @endsection

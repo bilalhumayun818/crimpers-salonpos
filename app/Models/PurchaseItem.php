@@ -15,11 +15,13 @@ class PurchaseItem extends Model
         'quantity_ordered',
         'quantity_received',
         'unit_cost',
+        'unit_selling_price',
         'line_total'
     ];
 
     protected $casts = [
         'unit_cost' => 'decimal:2',
+        'unit_selling_price' => 'decimal:2',
         'line_total' => 'decimal:2',
     ];
 

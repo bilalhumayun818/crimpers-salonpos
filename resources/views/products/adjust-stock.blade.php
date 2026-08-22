@@ -174,20 +174,18 @@
 
             {{-- Updated pricing --}}
             <div class="field-group">
-                <div class="section-lbl">Update Prices</div>
-                <div class="price-grid">
+                <div class="section-lbl">Update Prices (Optional)</div>
+                <div class="price-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                     <div>
                         <label class="field-label" for="cost_price">New Cost Price</label>
                         <input type="number" name="cost_price" id="cost_price" class="field-input" min="0" step="0.01"
-                               value="{{ old('cost_price') }}" placeholder="Leave blank to keep current price">
+                               value="{{ old('cost_price', $product->cost_price) }}" placeholder="Current: {{ number_format($product->cost_price ?? 0, 2) }}">
                     </div>
-                    @if($product->product_type === 'retail')
                     <div>
                         <label class="field-label" for="selling_price">New Selling Price</label>
                         <input type="number" name="selling_price" id="selling_price" class="field-input" min="0" step="0.01"
-                               value="{{ old('selling_price') }}" placeholder="Leave blank to keep current price">
+                               value="{{ old('selling_price', $product->selling_price) }}" placeholder="Current: {{ number_format($product->selling_price ?? 0, 2) }}">
                     </div>
-                    @endif
                 </div>
             </div>
 

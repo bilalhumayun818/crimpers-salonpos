@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Supplier;
 use App\Models\Purchase;
 use App\Models\PurchaseItem;
+use App\Models\ProductUsage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -159,10 +160,13 @@ class ProductController extends Controller
             'productUsages.service',
             'productUsages.invoice',
             'purchaseItems.purchase.supplier',
-            'invoiceItems.invoice'
+            'invoiceItems.invoice',
+            'priceHistories.user'
         ]);
 
-        return view('products.show', compact('product'));
+        $suppliers = Supplier::where('is_active', true)->orderBy('name')->get();
+
+        return view('products.show', compact('product', 'suppliers'));
     }
 
     public function edit(Product $product)
@@ -275,8 +279,8 @@ class ProductController extends Controller
         $oldSellingPrice = $product->selling_price;
         $oldCostPrice = $product->cost_price;
 
-        DB::transaction(function() use ($validated, $product, $oldSellingPrice, $oldCostPrice) {
-            $newSellingPrice = $product->product_type === 'retail' && $validated['selling_price'] !== null
+        DB::transaction(function() use ($validated, $product, $oldStock, $oldSellingPrice, $oldCostPrice) {
+            $newSellingPrice = $validated['selling_price'] !== null
                 ? $validated['selling_price']
                 : $product->selling_price;
 
@@ -289,17 +293,6 @@ class ProductController extends Controller
                 'cost_price' => $newCostPrice,
                 'selling_price' => $newSellingPrice,
             ]);
-
-            if ($oldSellingPrice != $product->selling_price || $oldCostPrice != $product->cost_price) {
-                \App\Models\ProductPriceHistory::create([
-                    'product_id' => $product->id,
-                    'user_id' => auth()->id(),
-                    'old_selling_price' => $oldSellingPrice,
-                    'new_selling_price' => $product->selling_price,
-                    'old_cost_price' => $oldCostPrice,
-                    'new_cost_price' => $product->cost_price,
-                ]);
-            }
 
             switch ($validated['adjustment_type']) {
                 case 'add':
@@ -328,6 +321,7 @@ class ProductController extends Controller
                                 'quantity_ordered' => $validated['quantity'],
                                 'quantity_received' => $validated['quantity'],
                                 'unit_cost' => $product->cost_price ?? 0,
+                                'unit_selling_price' => $product->selling_price ?? 0,
                                 'line_total' => $validated['quantity'] * ($product->cost_price ?? 0)
                             ]);
                         }
@@ -358,13 +352,208 @@ class ProductController extends Controller
                             'quantity_ordered' => -$validated['quantity'],
                             'quantity_received' => -$validated['quantity'],
                             'unit_cost' => $product->cost_price ?? 0,
+                            'unit_selling_price' => $product->selling_price ?? 0,
                             'line_total' => -($validated['quantity'] * ($product->cost_price ?? 0)),
                         ]);
                     }
                     break;
             }
+
+            $product->refresh();
+
+            // Log stock & price history
+            \App\Models\ProductPriceHistory::create([
+                'product_id' => $product->id,
+                'user_id' => auth()->id(),
+                'old_stock' => $oldStock,
+                'new_stock' => $product->current_stock,
+                'old_selling_price' => $oldSellingPrice,
+                'new_selling_price' => $product->selling_price,
+                'old_cost_price' => $oldCostPrice,
+                'new_cost_price' => $product->cost_price,
+                'reason' => 'Stock Adjustment (' . ucfirst($validated['adjustment_type']) . ' ' . $validated['quantity'] . ' units): ' . $validated['reason'],
+            ]);
         });
 
         return redirect()->back()->with('success', 'Stock adjusted successfully and recorded in history.');
+    }
+
+    public function updateAdjustment(Request $request, PurchaseItem $item)
+    {
+        $validated = $request->validate([
+            'quantity' => 'required|numeric',
+            'unit_cost' => 'nullable|numeric|min:0',
+            'selling_price' => 'nullable|numeric|min:0',
+            'notes' => 'nullable|string|max:500',
+            'supplier_id' => 'nullable|exists:suppliers,id',
+        ]);
+
+        $product = $item->product;
+        $purchase = $item->purchase;
+
+        DB::transaction(function() use ($item, $product, $purchase, $validated) {
+            $oldQty = (float) $item->quantity_ordered;
+            $newQty = (float) $validated['quantity'];
+            $qtyDiff = $newQty - $oldQty;
+
+            $oldStock = $product ? $product->current_stock : 0;
+            $oldCost = $product ? $product->cost_price : 0;
+            $oldSell = $product ? $product->selling_price : 0;
+
+            if ($product && $product->track_inventory) {
+                if ($qtyDiff < 0 && ($product->current_stock + $qtyDiff) < 0) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'quantity' => "Cannot reduce adjustment quantity. Product current stock would become negative."
+                    ]);
+                }
+                $product->increment('current_stock', $qtyDiff);
+            }
+
+            $unitCost = isset($validated['unit_cost']) && $validated['unit_cost'] !== null
+                ? (float) $validated['unit_cost']
+                : (float) $item->unit_cost;
+
+            $newSellingPrice = isset($validated['selling_price']) && $validated['selling_price'] !== null
+                ? (float) $validated['selling_price']
+                : ($product ? $product->selling_price : null);
+
+            // Check if this item belongs to the latest (most recent) active adjustment for the product
+            $latestItem = PurchaseItem::where('product_id', $product->id)
+                ->whereHas('purchase', function($q) {
+                    $q->where('status', '!=', 'cancelled');
+                })
+                ->orderBy('id', 'desc')
+                ->first();
+
+            $isLatestAdjustment = ($latestItem && $latestItem->id == $item->id);
+
+            if ($product) {
+                // ONLY update the product's active cost price AND selling price if this is the latest adjustment
+                // Past adjustments: only update that item's own unit_cost and unit_selling_price — never touch product prices
+                if ($isLatestAdjustment) {
+                    $product->update([
+                        'cost_price'    => $unitCost,
+                        'selling_price' => $newSellingPrice ?? $oldSell,
+                    ]);
+                    $product->refresh();
+                }
+
+                \App\Models\ProductPriceHistory::create([
+                    'product_id'        => $product->id,
+                    'user_id'           => auth()->id(),
+                    'old_stock'         => $oldStock,
+                    'new_stock'         => $product->current_stock,
+                    'old_selling_price' => $oldSell,
+                    'new_selling_price' => $isLatestAdjustment ? $product->selling_price : $oldSell,
+                    'old_cost_price'    => $oldCost,
+                    'new_cost_price'    => $isLatestAdjustment ? $product->cost_price : $oldCost,
+                    'reason'            => ($isLatestAdjustment ? 'Edited Latest Adjustment' : 'Edited Past Adjustment')
+                        . ' (Qty: ' . $oldQty . ' → ' . $newQty
+                        . ', Cost: PKR ' . number_format($unitCost, 2)
+                        . ', Sell: PKR ' . number_format($newSellingPrice ?? $oldSell, 2) . ')'
+                        . (!empty($validated['notes']) ? ' — ' . $validated['notes'] : ''),
+                ]);
+            }
+
+            $lineTotal = $newQty * $unitCost;
+
+            $item->update([
+                'quantity_ordered' => $newQty,
+                'quantity_received' => $newQty,
+                'unit_cost' => $unitCost,
+                'unit_selling_price' => $newSellingPrice ?? $item->unit_selling_price ?? $product->selling_price,
+                'line_total' => $lineTotal,
+            ]);
+
+            if ($purchase) {
+                $purchaseUpdate = [
+                    'total_amount' => $lineTotal,
+                ];
+                if (isset($validated['notes'])) {
+                    $purchaseUpdate['notes'] = $validated['notes'];
+                }
+                if (!empty($validated['supplier_id'])) {
+                    $purchaseUpdate['supplier_id'] = $validated['supplier_id'];
+                }
+                $purchase->update($purchaseUpdate);
+            }
+        });
+
+        return redirect()->back()->with('success', 'Purchase / Inventory adjustment updated successfully.');
+    }
+
+    public function destroyAdjustment(PurchaseItem $item)
+    {
+        DB::transaction(function() use ($item) {
+            $product = $item->product;
+            $purchase = $item->purchase;
+            $qtyOrdered = (float) $item->quantity_ordered;
+            $oldStock = $product ? $product->current_stock : 0;
+
+            if ($product && $product->track_inventory) {
+                $product->decrement('current_stock', $qtyOrdered);
+                $product->refresh();
+            }
+
+            if ($purchase) {
+                if ($purchase->status === 'cancelled') {
+                    // Hard delete if user clicks delete again on a cancelled entry
+                    $item->delete();
+                    if ($purchase->purchaseItems()->count() === 0) {
+                        $purchase->delete();
+                    }
+                } else {
+                    $latestItemBeforeCancel = PurchaseItem::where('product_id', $product->id)
+                        ->whereHas('purchase', function($q) {
+                            $q->where('status', '!=', 'cancelled');
+                        })
+                        ->orderBy('id', 'desc')
+                        ->first();
+
+                    $wasLatest = ($latestItemBeforeCancel && $latestItemBeforeCancel->id == $item->id);
+
+                    // Soft cancellation in history log
+                    $cancelNote = " [Cancelled/Deleted by " . (auth()->user()?->name ?? 'User') . " on " . now()->format('M d, Y H:i') . "]";
+                    $purchase->update([
+                        'status' => 'cancelled',
+                        'notes' => ($purchase->notes ?? '') . $cancelNote,
+                    ]);
+
+                    if ($wasLatest && $product) {
+                        $nextLatest = PurchaseItem::where('product_id', $product->id)
+                            ->whereHas('purchase', function($q) {
+                                $q->where('status', '!=', 'cancelled');
+                            })
+                            ->orderBy('id', 'desc')
+                            ->first();
+
+                        if ($nextLatest && $nextLatest->unit_cost) {
+                            $product->update([
+                                'cost_price' => $nextLatest->unit_cost,
+                            ]);
+                            $product->refresh();
+                        }
+                    }
+
+                    if ($product) {
+                        \App\Models\ProductPriceHistory::create([
+                            'product_id' => $product->id,
+                            'user_id' => auth()->id(),
+                            'old_stock' => $oldStock,
+                            'new_stock' => $product->current_stock,
+                            'old_selling_price' => $product->selling_price,
+                            'new_selling_price' => $product->selling_price,
+                            'old_cost_price' => $product->cost_price,
+                            'new_cost_price' => $product->cost_price,
+                            'reason' => 'Cancelled Adjustment (' . ($qtyOrdered > 0 ? '-' : '+') . abs($qtyOrdered) . ' units stock reverted)',
+                        ]);
+                    }
+                }
+            } else {
+                $item->delete();
+            }
+        });
+
+        return redirect()->back()->with('success', 'Purchase / Inventory adjustment status updated and stock reverted.');
     }
 }
