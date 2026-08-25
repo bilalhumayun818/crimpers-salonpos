@@ -868,6 +868,13 @@
   <script>
     document.addEventListener('DOMContentLoaded', function () {
 
+      // Prevent mouse scroll wheel from changing number input values
+      document.addEventListener('wheel', function (e) {
+        if (e.target.tagName === 'INPUT' && e.target.type === 'number') {
+          e.target.blur();
+        }
+      });
+
       var raw = localStorage.getItem('pos_checkout_session');
       if (!raw) {
         alert('No active order session. Returning to POS...');
