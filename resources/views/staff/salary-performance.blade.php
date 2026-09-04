@@ -316,7 +316,7 @@
     </div>
 
     {{-- Stats Cards --}}
-    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));">
+    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
         <div class="stat-card">
             <div class="stat-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg></div>
             <div class="stat-lbl">Base Salary</div>
@@ -324,18 +324,28 @@
         </div>
         <div class="stat-card">
             <div class="stat-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
-            <div class="stat-lbl">Earned Commission</div>
+            <div class="stat-lbl">Earned Comm.</div>
             <div class="stat-val" style="color: var(--ydark);">PKR {{ number_format($staff->total_earned_commission, 2) }}</div>
+        </div>
+        <div class="stat-card" style="background:#f3e8ff; border-color:#d8b4fe;">
+            <div class="stat-icon" style="background:#e9d5ff; color:#6b21a8;"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>
+            <div class="stat-lbl" style="color:#6b21a8;">Daily Base Paid ({{ $staff->current_cycle_daily_salaries_count }}d)</div>
+            <div class="stat-val" style="color:#7e22ce;">PKR {{ number_format($staff->current_cycle_daily_base_salaries, 2) }}</div>
+        </div>
+        <div class="stat-card" style="background:#fef2f2; border-color:#fecaca;">
+            <div class="stat-icon" style="background:#fee2e2; color:#b91c1c;"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg></div>
+            <div class="stat-lbl" style="color:#991b1b;">Absent Deduct ({{ $staff->current_cycle_absent_days }}d)</div>
+            <div class="stat-val" style="color:#dc2626;">PKR {{ number_format($staff->current_cycle_absent_deductions, 2) }}</div>
         </div>
         <div class="stat-card" style="background:#fefce8; border-color:#fef08a;">
             <div class="stat-icon" style="background:#fef08a; color:#854d0e;"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg></div>
-            <div class="stat-lbl" style="color:#854d0e;">Advances Taken</div>
+            <div class="stat-lbl" style="color:#854d0e;">Advances</div>
             <div class="stat-val" style="color:#a16207;">PKR {{ number_format($staff->current_cycle_advances, 2) }}</div>
         </div>
-        <div class="stat-card" style="background:#fef2f2; border-color:#fecaca;">
-            <div class="stat-icon" style="background:#fecaca; color:#991b1b;"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
-            <div class="stat-lbl" style="color:#991b1b;">Deductions</div>
-            <div class="stat-val" style="color:#b91c1c;">PKR {{ number_format($staff->current_cycle_deductions, 2) }}</div>
+        <div class="stat-card" style="background:#fff1f2; border-color:#fecdd3;">
+            <div class="stat-icon" style="background:#fecdd3; color:#9f1239;"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+            <div class="stat-lbl" style="color:#9f1239;">Deductions</div>
+            <div class="stat-val" style="color:#be123c;">PKR {{ number_format($staff->current_cycle_deductions, 2) }}</div>
         </div>
         <div class="stat-card" style="background: var(--ybg);">
             <div class="stat-icon" style="background: var(--y1); color: var(--ydark);"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 8h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
@@ -371,6 +381,8 @@
                                 <td>
                                     @if(in_array($exp->category, ['full_salary', 'salary']))
                                         <span style="background:#dcfce7; color:#166534; padding:2px 8px; border-radius:6px; font-weight:700; font-size:0.75rem;">Full Salary</span>
+                                    @elseif($exp->category === 'daily_salary')
+                                        <span style="background:#f3e8ff; color:#6b21a8; padding:2px 8px; border-radius:6px; font-weight:700; font-size:0.75rem;">Daily Salary</span>
                                     @elseif(in_array($exp->category, ['advance', 'salary_advance']))
                                         <span style="background:#fef9c3; color:#854d0e; padding:2px 8px; border-radius:6px; font-weight:700; font-size:0.75rem;">Advance</span>
                                     @elseif($exp->category === 'deduction')

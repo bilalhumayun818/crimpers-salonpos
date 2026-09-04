@@ -128,6 +128,9 @@ class StaffController extends Controller
         ]);
 
         $validated['status'] = $request->has('status');
+        if (isset($validated['salary'])) {
+            $validated['base_salary'] = $validated['salary'];
+        }
         $staff->update($validated);
         
         // Ensure all services are assigned to the employee
@@ -328,11 +331,15 @@ class StaffController extends Controller
 
     public function paySalary(Staff $staff)
     {
-        $base = (float) ($staff->base_salary ?? 0);
-        $comm = (float) ($staff->total_earned_commission ?? 0);
-        $adv  = $staff->current_cycle_advances;
-        $ded  = $staff->current_cycle_deductions;
-        $netPaid = $staff->net_salary_payable;
+        $base          = (float) ($staff->base_salary ?? 0);
+        $comm          = (float) ($staff->total_earned_commission ?? 0);
+        $adv           = $staff->current_cycle_advances;
+        $ded           = $staff->current_cycle_deductions;
+        $dailyBasePaid = $staff->current_cycle_daily_base_salaries;
+        $dailyCount    = $staff->current_cycle_daily_salaries_count;
+        $absentDed     = $staff->current_cycle_absent_deductions;
+        $absentDays    = $staff->current_cycle_absent_days;
+        $netPaid       = $staff->net_salary_payable;
 
         // Record the expense in the expenses history
         \App\Models\Expense::create([
@@ -342,6 +349,8 @@ class StaffController extends Controller
             'staff_id' => $staff->id,
             'description' => "Full Salary Paid to " . $staff->name . " (Base: PKR " . number_format($base, 2) . 
                              ", Commission: PKR " . number_format($comm, 2) . 
+                             ", Daily Base Paid ({$dailyCount} days): PKR " . number_format($dailyBasePaid, 2) . 
+                             ", Absent Deductions ({$absentDays} days): PKR " . number_format($absentDed, 2) . 
                              ", Advances: PKR " . number_format($adv, 2) . 
                              ", Deductions: PKR " . number_format($ded, 2) . 
                              ", Net Paid: PKR " . number_format($netPaid, 2) . ")",

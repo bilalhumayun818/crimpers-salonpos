@@ -206,9 +206,17 @@ input:checked + .slider:before{transform:translateX(26px);}
                             @foreach($staff as $member)
                                 <option value="{{ $member->id }}"
                                         data-base="{{ number_format($member->base_salary ?? 0, 2, '.', '') }}"
+                                        data-daily-base="{{ number_format($member->daily_base_salary ?? 0, 2, '.', '') }}"
+                                        data-today-comm="{{ number_format($member->today_earned_commission ?? 0, 2, '.', '') }}"
                                         data-comm="{{ number_format($member->total_earned_commission ?? 0, 2, '.', '') }}"
                                         data-adv="{{ number_format($member->current_cycle_advances ?? 0, 2, '.', '') }}"
                                         data-ded="{{ number_format($member->current_cycle_deductions ?? 0, 2, '.', '') }}"
+                                        data-daily-paid="{{ number_format($member->current_cycle_daily_salaries ?? 0, 2, '.', '') }}"
+                                        data-daily-base-paid="{{ number_format($member->current_cycle_daily_base_salaries ?? 0, 2, '.', '') }}"
+                                        data-daily-count="{{ $member->current_cycle_daily_salaries_count ?? 0 }}"
+                                        data-absent-days="{{ $member->current_cycle_absent_days ?? 0 }}"
+                                        data-absent-ded="{{ number_format($member->current_cycle_absent_deductions ?? 0, 2, '.', '') }}"
+                                        data-expected-daily="{{ number_format($member->expected_daily_salary ?? 0, 2, '.', '') }}"
                                         data-net="{{ number_format($member->net_salary_payable ?? 0, 2, '.', '') }}">
                                     {{ $member->name }}
                                 </option>
@@ -224,6 +232,10 @@ input:checked + .slider:before{transform:translateX(26px);}
                             <button type="button" class="staff-cat-btn cat-btn selected" onclick="selectStaffCategory('full_salary', this)" title="Full Salary">
                                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
                                 <span>Full Salary</span>
+                            </button>
+                            <button type="button" class="staff-cat-btn cat-btn" onclick="selectStaffCategory('daily_salary', this)" title="Daily Salary">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                <span>Daily Salary</span>
                             </button>
                             <button type="button" class="staff-cat-btn cat-btn" onclick="selectStaffCategory('advance', this)" title="Salary Advance">
                                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
@@ -242,18 +254,48 @@ input:checked + .slider:before{transform:translateX(26px);}
                     </div>
 
                     <div id="salary-breakdown-info" style="display:none; margin-bottom:20px; padding:14px 16px; background:#fffdf0; border:1.5px solid #f0e8a0; border-radius:12px; font-size:0.85rem; color:#1e293b;">
-                        <div style="font-weight:800; color:#a07800; margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+                        <div style="font-weight:800; color:#a07800; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
                             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            Salary Breakdown Summary
+                            <span id="sb-title">Salary Breakdown Summary</span>
                         </div>
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:0.8rem; color:#475569;">
-                            <div>Base Salary: <strong style="color:#1e293b;" id="sb-base">Rs. 0.00</strong></div>
-                            <div>Earned Commission: <strong style="color:#0284c7;" id="sb-comm">Rs. 0.00</strong></div>
-                            <div>Advances Taken: <strong style="color:#eab308;" id="sb-adv">Rs. 0.00</strong></div>
-                            <div>Deductions: <strong style="color:#ef4444;" id="sb-ded">Rs. 0.00</strong></div>
+                        
+                        <!-- FULL SALARY SUMMARY -->
+                        <div id="full-salary-summary" style="display:none;">
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:0.8rem; color:#475569;">
+                                <div>Base Salary: <strong style="color:#1e293b;" id="sb-base">Rs. 0.00</strong></div>
+                                <div>Earned Comm: <strong style="color:#0284c7;" id="sb-comm">Rs. 0.00</strong></div>
+                                <div>Daily Base Paid: <strong style="color:#8b5cf6;" id="sb-daily-paid">Rs. 0.00</strong> <span id="sb-daily-count" style="font-size:0.75rem; color:#94a3b8;">(0 days)</span></div>
+                                <div>Absent Deductions: <strong style="color:#ef4444;" id="sb-absent-ded">Rs. 0.00</strong> <span id="sb-absent-days" style="font-size:0.75rem; color:#94a3b8;">(0 days)</span></div>
+                                <div>Advances Taken: <strong style="color:#eab308;" id="sb-adv">Rs. 0.00</strong></div>
+                                <div>Other Deductions: <strong style="color:#dc2626;" id="sb-ded">Rs. 0.00</strong></div>
+                            </div>
+                                <div>Advances Taken: <strong style="color:#eab308;" id="sb-adv">Rs. 0.00</strong></div>
+                                <div>Other Deductions: <strong style="color:#dc2626;" id="sb-ded">Rs. 0.00</strong></div>
+                            </div>
+                            <div style="border-top:1px dashed #cbd5e1; margin-top:8px; padding-top:6px; font-weight:800; color:#16a34a; font-size:0.9rem;">
+                                Net Payable: <span id="sb-net">Rs. 0.00</span>
+                            </div>
                         </div>
-                        <div style="border-top:1px dashed #cbd5e1; margin-top:8px; padding-top:6px; font-weight:800; color:#16a34a; font-size:0.9rem;">
-                            Net Payable: <span id="sb-net">Rs. 0.00</span>
+
+                        <!-- DAILY SALARY SUMMARY -->
+                        <div id="daily-salary-summary" style="display:none;">
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:0.8rem; color:#475569;">
+                                <div>Daily Base (Base/30): <strong style="color:#1e293b;" id="dsb-base">Rs. 0.00</strong></div>
+                                <div>Today's Commission: <strong style="color:#0284c7;" id="dsb-comm">Rs. 0.00</strong></div>
+                            </div>
+                            <div style="border-top:1px dashed #cbd5e1; margin-top:8px; padding-top:6px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+                                <div style="font-weight:800; color:#0f172a; font-size:0.85rem;">
+                                    Expected Daily Pay: <span id="dsb-expected" style="color:#2563eb;">Rs. 0.00</span>
+                                </div>
+                                <div id="dsb-bonus-badge" style="font-weight:800; font-size:0.82rem; color:#16a34a;"></div>
+                            </div>
+                        </div>
+
+                        <!-- ADVANCE / DEDUCTION / OTHER SUMMARY -->
+                        <div id="other-staff-summary" style="display:none;">
+                            <div style="font-size:0.8rem; color:#475569;">
+                                Net Payable Remaining in Cycle: <strong style="color:#16a34a;" id="osb-net">Rs. 0.00</strong>
+                            </div>
                         </div>
                     </div>
 
@@ -267,7 +309,7 @@ input:checked + .slider:before{transform:translateX(26px);}
                         <label class="f-label">Amount (PKR)</label>
                         <div style="position:relative;">
                             <span style="position:absolute;left:16px;top:50%;transform:translateY(-50%);font-weight:700;color:#94a3b8;">Rs.</span>
-                            <input type="number" step="0.01" name="amount_staff" class="f-input" style="padding-left:46px;" placeholder="0.00" id="amt-staff">
+                            <input type="number" step="0.01" name="amount_staff" class="f-input" style="padding-left:46px;" placeholder="0.00" id="amt-staff" oninput="onAmountInputChanged()">
                         </div>
                         <div style="color:#ef4444;font-size:.75rem;margin-top:6px;font-weight:600;display:none;" class="err-amt-staff"></div>
                     </div>
@@ -329,6 +371,10 @@ function updateStaffCalculations() {
     const amtInput = document.getElementById('amt-staff');
     const infoBox = document.getElementById('salary-breakdown-info');
 
+    const fullSum  = document.getElementById('full-salary-summary');
+    const dailySum = document.getElementById('daily-salary-summary');
+    const otherSum = document.getElementById('other-staff-summary');
+
     const selectedOption = staffSelect.options[staffSelect.selectedIndex];
 
     if (!selectedOption || !selectedOption.value) {
@@ -338,31 +384,95 @@ function updateStaffCalculations() {
         return;
     }
 
-    const base = parseFloat(selectedOption.getAttribute('data-base') || 0);
-    const comm = parseFloat(selectedOption.getAttribute('data-comm') || 0);
-    const adv  = parseFloat(selectedOption.getAttribute('data-adv') || 0);
-    const ded  = parseFloat(selectedOption.getAttribute('data-ded') || 0);
-    const net  = parseFloat(selectedOption.getAttribute('data-net') || 0);
+    const base           = parseFloat(selectedOption.getAttribute('data-base') || 0);
+    const dailyBase      = parseFloat(selectedOption.getAttribute('data-daily-base') || 0);
+    const todayComm      = parseFloat(selectedOption.getAttribute('data-today-comm') || 0);
+    const comm           = parseFloat(selectedOption.getAttribute('data-comm') || 0);
+    const adv            = parseFloat(selectedOption.getAttribute('data-adv') || 0);
+    const ded            = parseFloat(selectedOption.getAttribute('data-ded') || 0);
+    const dailyBasePaid  = parseFloat(selectedOption.getAttribute('data-daily-base-paid') || 0);
+    const dailyCount     = parseInt(selectedOption.getAttribute('data-daily-count') || 0);
+    const absentDays     = parseInt(selectedOption.getAttribute('data-absent-days') || 0);
+    const absentDed      = parseFloat(selectedOption.getAttribute('data-absent-ded') || 0);
+    const expectedDaily  = parseFloat(selectedOption.getAttribute('data-expected-daily') || 0);
+    const net            = parseFloat(selectedOption.getAttribute('data-net') || 0);
 
-    document.getElementById('sb-base').textContent = 'Rs. ' + base.toLocaleString('en-US', {minimumFractionDigits:2});
-    document.getElementById('sb-comm').textContent = 'Rs. ' + comm.toLocaleString('en-US', {minimumFractionDigits:2});
-    document.getElementById('sb-adv').textContent  = 'Rs. ' + adv.toLocaleString('en-US', {minimumFractionDigits:2});
-    document.getElementById('sb-ded').textContent  = 'Rs. ' + ded.toLocaleString('en-US', {minimumFractionDigits:2});
-    document.getElementById('sb-net').textContent  = 'Rs. ' + net.toLocaleString('en-US', {minimumFractionDigits:2});
+    infoBox.style.display = 'block';
+    fullSum.style.display = 'none';
+    dailySum.style.display = 'none';
+    otherSum.style.display = 'none';
 
     if (staffCat === 'full_salary' || staffCat === 'salary') {
-        infoBox.style.display = 'block';
+        document.getElementById('sb-title').textContent = 'Full Salary Breakdown';
+        fullSum.style.display = 'block';
+
+        document.getElementById('sb-base').textContent       = 'Rs. ' + base.toLocaleString('en-US', {minimumFractionDigits:2});
+        document.getElementById('sb-comm').textContent       = 'Rs. ' + comm.toLocaleString('en-US', {minimumFractionDigits:2});
+        document.getElementById('sb-daily-paid').textContent = 'Rs. ' + dailyBasePaid.toLocaleString('en-US', {minimumFractionDigits:2});
+        document.getElementById('sb-daily-count').textContent= '(' + dailyCount + ' day' + (dailyCount === 1 ? '' : 's') + ')';
+        document.getElementById('sb-absent-ded').textContent  = 'Rs. ' + absentDed.toLocaleString('en-US', {minimumFractionDigits:2});
+        document.getElementById('sb-absent-days').textContent = '(' + absentDays + ' day' + (absentDays === 1 ? '' : 's') + ')';
+        document.getElementById('sb-adv').textContent        = 'Rs. ' + adv.toLocaleString('en-US', {minimumFractionDigits:2});
+        document.getElementById('sb-ded').textContent        = 'Rs. ' + ded.toLocaleString('en-US', {minimumFractionDigits:2});
+        document.getElementById('sb-net').textContent        = 'Rs. ' + net.toLocaleString('en-US', {minimumFractionDigits:2});
+
         amtInput.value = net.toFixed(2);
         amtInput.readOnly = true;
         amtInput.style.background = '#e2e8f0';
-    } else {
-        if (staffCat === 'advance' || staffCat === 'deduction' || staffCat === 'other') {
-            infoBox.style.display = 'block';
-        } else {
-            infoBox.style.display = 'none';
-        }
+
+    } else if (staffCat === 'daily_salary') {
+        document.getElementById('sb-title').textContent = "Daily Salary Breakdown";
+        dailySum.style.display = 'block';
+
+        document.getElementById('dsb-base').textContent     = 'Rs. ' + dailyBase.toLocaleString('en-US', {minimumFractionDigits:2});
+        document.getElementById('dsb-comm').textContent     = 'Rs. ' + todayComm.toLocaleString('en-US', {minimumFractionDigits:2});
+        document.getElementById('dsb-expected').textContent = 'Rs. ' + expectedDaily.toLocaleString('en-US', {minimumFractionDigits:2});
+
         amtInput.readOnly = false;
         amtInput.style.background = '#f8fafc';
+        if (!amtInput.value || parseFloat(amtInput.value) === 0 || amtInput.getAttribute('data-last-cat') !== 'daily_salary') {
+            amtInput.value = expectedDaily.toFixed(2);
+        }
+        onAmountInputChanged();
+
+    } else {
+        document.getElementById('sb-title').textContent = staffCat.charAt(0).toUpperCase() + staffCat.slice(1) + ' Record';
+        otherSum.style.display = 'block';
+        document.getElementById('osb-net').textContent = 'Rs. ' + net.toLocaleString('en-US', {minimumFractionDigits:2});
+
+        amtInput.readOnly = false;
+        amtInput.style.background = '#f8fafc';
+    }
+
+    amtInput.setAttribute('data-last-cat', staffCat);
+}
+
+function onAmountInputChanged() {
+    const staffSelect = document.getElementById('staff-select');
+    const staffCat    = document.getElementById('staff-cat').value;
+    const amtInput    = document.getElementById('amt-staff');
+    const badge       = document.getElementById('dsb-bonus-badge');
+
+    if (staffCat !== 'daily_salary' || !badge) return;
+
+    const selectedOption = staffSelect.options[staffSelect.selectedIndex];
+    if (!selectedOption || !selectedOption.value) {
+        badge.innerHTML = '';
+        return;
+    }
+
+    const expectedDaily = parseFloat(selectedOption.getAttribute('data-expected-daily') || 0);
+    const typedAmount   = parseFloat(amtInput.value || 0);
+
+    if (typedAmount > expectedDaily) {
+        const bonus = typedAmount - expectedDaily;
+        badge.innerHTML = `<span style="background:#dcfce7; color:#15803d; padding:4px 10px; border-radius:8px; font-weight:800; border:1px solid #bbf7d0;">🎁 Bonus Added: +Rs. ${bonus.toLocaleString('en-US', {minimumFractionDigits:2})}</span>`;
+    } else if (typedAmount === expectedDaily && expectedDaily > 0) {
+        badge.innerHTML = `<span style="color:#2563eb; font-weight:700;">Standard Daily Salary</span>`;
+    } else if (typedAmount > 0 && typedAmount < expectedDaily) {
+        badge.innerHTML = `<span style="color:#d97706; font-weight:700;">Partial Daily Salary</span>`;
+    } else {
+        badge.innerHTML = '';
     }
 }
 

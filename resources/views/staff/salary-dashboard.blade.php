@@ -142,6 +142,8 @@
                 <td><span class="amt-badge">+ PKR {{ number_format($s->total_earned_commission, 2) }}</span></td>
                 <td>
                     <div style="font-size:0.75rem;">
+                        <div style="color:#8b5cf6;">Daily Base Paid: <span style="font-weight:700;">PKR {{ number_format($s->current_cycle_daily_base_salaries, 2) }}</span> <span style="font-size:0.65rem; color:#94a3b8;">({{ $s->current_cycle_daily_salaries_count }}d)</span></div>
+                        <div style="color:#ef4444;">Absent: <span style="font-weight:700;">PKR {{ number_format($s->current_cycle_absent_deductions, 2) }}</span> <span style="font-size:0.65rem; color:#94a3b8;">({{ $s->current_cycle_absent_days }}d)</span></div>
                         <div style="color:#a16207;">Adv: <span style="font-weight:700;">PKR {{ number_format($s->current_cycle_advances, 2) }}</span></div>
                         <div style="color:#b91c1c;">Ded: <span style="font-weight:700;">PKR {{ number_format($s->current_cycle_deductions, 2) }}</span></div>
                     </div>

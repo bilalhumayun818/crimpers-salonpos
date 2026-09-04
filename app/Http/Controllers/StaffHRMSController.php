@@ -54,8 +54,10 @@ class StaffHRMSController extends Controller
     public function updateSalary(Request $request)
     {
         $staff = Staff::findOrFail($request->staff_id);
+        $salaryVal = $request->base_salary ?? $request->salary;
         $staff->update([
-            'base_salary'             => $request->base_salary,
+            'salary'                  => $salaryVal,
+            'base_salary'             => $salaryVal,
             'commission_per_customer' => $request->commission_per_customer,
             'commission_per_service'  => $request->commission_per_service,
             'shift_start'             => $request->shift_start,

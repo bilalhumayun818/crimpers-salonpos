@@ -368,13 +368,15 @@ class ReportController extends Controller
 
         $callback = function() use ($staffs) {
             $file = fopen('php://output', 'w');
-            fputcsv($file, ['Staff Name', 'Base Salary', 'Earned Commission', 'Advances Taken', 'Deductions', 'Net Payable', 'Last Paid At']);
+            fputcsv($file, ['Staff Name', 'Base Salary', 'Earned Commission', 'Daily Salaries Paid', 'Absent Deductions', 'Advances Taken', 'Deductions', 'Net Payable', 'Last Paid At']);
             
             foreach ($staffs as $staff) {
                 fputcsv($file, [
                     $staff->name,
                     $staff->base_salary,
                     $staff->total_earned_commission,
+                    $staff->current_cycle_daily_salaries,
+                    $staff->current_cycle_absent_deductions,
                     $staff->current_cycle_advances,
                     $staff->current_cycle_deductions,
                     $staff->net_salary_payable,

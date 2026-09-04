@@ -65,6 +65,28 @@ class Staff extends Model
         'last_paid_at' => 'datetime',
     ];
 
+    public function setSalaryAttribute($value)
+    {
+        $this->attributes['salary'] = $value;
+        $this->attributes['base_salary'] = $value;
+    }
+
+    public function setBaseSalaryAttribute($value)
+    {
+        $this->attributes['base_salary'] = $value;
+        $this->attributes['salary'] = $value;
+    }
+
+    public function getBaseSalaryAttribute($value)
+    {
+        return $value ?? $this->attributes['salary'] ?? 0;
+    }
+
+    public function getSalaryAttribute($value)
+    {
+        return $value ?? $this->attributes['base_salary'] ?? 0;
+    }
+
     public function getDaysSinceLastPaymentAttribute()
     {
         $startDate = $this->last_paid_at ?? $this->hiring_date ?? $this->created_at;
@@ -140,6 +162,65 @@ class Staff extends Model
         return $this->hasMany(Expense::class);
     }
 
+    public function getDailyBaseSalaryAttribute()
+    {
+        $base = (float) ($this->base_salary ?? 0);
+        return round($base / 30, 2);
+    }
+
+    public function getCurrentCycleDailySalariesCountAttribute()
+    {
+        $startDate = $this->last_paid_at ?? $this->created_at;
+        return (int) $this->expenses()
+            ->where('category', 'daily_salary')
+            ->where('created_at', '>=', $startDate)
+            ->count();
+    }
+
+    public function getCurrentCycleDailyBaseSalariesAttribute()
+    {
+        $count = $this->current_cycle_daily_salaries_count;
+        return round($count * $this->daily_base_salary, 2);
+    }
+
+    public function getCurrentCycleDailySalariesAttribute()
+    {
+        $startDate = $this->last_paid_at ?? $this->created_at;
+        return (float) $this->expenses()
+            ->where('category', 'daily_salary')
+            ->where('created_at', '>=', $startDate)
+            ->sum('amount');
+    }
+
+    public function getCurrentCycleAbsentDaysAttribute()
+    {
+        $startDate = $this->last_paid_at ?? $this->created_at;
+        $startDateStr = \Carbon\Carbon::parse($startDate)->toDateString();
+        return (int) $this->attendances()
+            ->where('attendance_date', '>=', $startDateStr)
+            ->where('status', 'absent')
+            ->count();
+    }
+
+    public function getCurrentCycleAbsentDeductionsAttribute()
+    {
+        $absentDays = $this->current_cycle_absent_days;
+        return round($absentDays * $this->daily_base_salary, 2);
+    }
+
+    public function getTodayEarnedCommissionAttribute()
+    {
+        $today = \Carbon\Carbon::today()->toDateString();
+        return (float) \App\Models\InvoiceStaffCommission::where('staff_id', $this->id)
+            ->whereDate('created_at', $today)
+            ->sum('commission_earned');
+    }
+
+    public function getExpectedDailySalaryAttribute()
+    {
+        return round($this->daily_base_salary + $this->today_earned_commission, 2);
+    }
+
     public function getCurrentCycleAdvancesAttribute()
     {
         $startDate = $this->last_paid_at ?? $this->created_at;
@@ -160,12 +241,14 @@ class Staff extends Model
 
     public function getNetSalaryPayableAttribute()
     {
-        $base = (float) ($this->base_salary ?? 0);
-        $comm = (float) ($this->total_earned_commission ?? 0);
-        $adv  = $this->current_cycle_advances;
-        $ded  = $this->current_cycle_deductions;
+        $base          = (float) ($this->base_salary ?? 0);
+        $comm          = (float) ($this->total_earned_commission ?? 0);
+        $adv           = $this->current_cycle_advances;
+        $ded           = $this->current_cycle_deductions;
+        $dailyBasePaid = $this->current_cycle_daily_base_salaries;
+        $absentDed     = $this->current_cycle_absent_deductions;
         
-        return max(0, ($base + $comm) - ($adv + $ded));
+        return max(0, ($base + $comm) - ($adv + $ded + $dailyBasePaid + $absentDed));
     }
 
     public function attendances()
