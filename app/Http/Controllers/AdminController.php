@@ -77,9 +77,22 @@ class AdminController extends Controller
         
         $activeCoupons = Coupon::where('is_active', true)
                         ->where(function($q) use ($today) {
+                            $q->whereNull('valid_from')->orWhere('valid_from', '<=', $today);
+                        })
+                        ->where(function($q) use ($today) {
+                            $q->whereNull('valid_until')->orWhere('valid_until', '>=', $today);
+                        })
+                        ->where(function($q) {
+                            $q->whereNull('usage_limit')->orWhere('usage_limit', 0)->orWhereRaw('used_count < usage_limit');
+                        })->count();
+
+        $activeDiscounts = DiscountRule::where('is_active', true)
+                        ->where(function($q) use ($today) {
+                            $q->whereNull('valid_from')->orWhere('valid_from', '<=', $today);
+                        })
+                        ->where(function($q) use ($today) {
                             $q->whereNull('valid_until')->orWhere('valid_until', '>=', $today);
                         })->count();
-        $activeDiscounts = DiscountRule::where('is_active', true)->count();
         
         $businessDate = CashReconciliation::getCurrentBusinessDate();
         $reconciliationDone = CashReconciliation::where('date', $businessDate)->where('is_closed', true)->exists();
@@ -122,6 +135,9 @@ class AdminController extends Controller
             ];
         }
 
+        $todayDiscounts = (float) Invoice::whereDate('created_at', Carbon::today())->sum('discount');
+        $todayExpenses  = (float) \App\Models\Expense::whereDate('created_at', Carbon::today())->sum('amount');
+
         return view('admin.index', compact(
             'totalSalesToday', 'totalAppointmentsToday', 'completedAppointmentsToday',
             'totalSalesWeek', 'totalAppointmentsWeek',
@@ -130,6 +146,7 @@ class AdminController extends Controller
             'lowStockList', 'recentAppointments', 'recentInvoices', 'lateAppointments',
             'staffPresentToday', 'totalStaff', 'activeCoupons', 'activeDiscounts', 'reconciliationDone',
             'needsReconciliation', 'hoursPastMidnight',
+            'todayDiscounts', 'todayExpenses',
             'dailySales', 'weeklySales', 'monthlySales'
         ));
     }

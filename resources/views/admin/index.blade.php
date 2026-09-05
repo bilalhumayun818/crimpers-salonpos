@@ -62,7 +62,7 @@
 .badge-cash{background:var(--y2);color:var(--yk);}
 .badge-card{background:#dbeafe;color:#1d4ed8;}
 .badge-split{background:#ede9fe;color:#5b21b6;}
-.badge-done{background:var(--y2);color:var(--yk);}
+.badge-done{background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;}
 .badge-pending{background:#fef3c7;color:#92400e;}
 .badge-info{background:#dbeafe;color:#1e40af;}
 .badge-success{background:var(--y2);color:var(--yk);}
@@ -374,12 +374,16 @@
                     <span class="badge {{ $reconciliationDone ? 'badge-done' : 'badge-warn' }}">{{ $reconciliationDone ? 'Done' : 'Pending' }}</span>
                 </div>
                 <div class="status-row">
-                    <span>Active Coupons</span>
-                    <span class="status-val">{{ $activeCoupons }}</span>
+                    <span>Discounts Today</span>
+                    <a href="{{ route('invoices.index', ['period' => 'today']) }}" class="status-val" style="text-decoration:none; color:var(--y1); transition:.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--y1)'" title="View Invoices">PKR {{ number_format($todayDiscounts, 0) }} →</a>
                 </div>
                 <div class="status-row">
-                    <span>Active Discounts</span>
-                    <span class="status-val">{{ $activeDiscounts }}</span>
+                    <span>Expenses Today</span>
+                    @if(auth()->user()->isAdmin())
+                        <a href="{{ route('expenses.create') }}" class="status-val" style="text-decoration:none; color:#f87171; transition:.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#f87171'" title="Expenses & Payouts">PKR {{ number_format($todayExpenses, 0) }} →</a>
+                    @else
+                        <span class="status-val" style="color:#f87171;">PKR {{ number_format($todayExpenses, 0) }}</span>
+                    @endif
                 </div>
                 <div style="margin-top:18px; {{ $needsReconciliation ? 'animation: heartbeat ' . max(0.5, 2 - ($hoursPastMidnight * 0.2)) . 's infinite;' : '' }}">
                     @if(!$reconciliationDone)

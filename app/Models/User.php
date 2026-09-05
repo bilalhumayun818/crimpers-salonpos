@@ -45,9 +45,14 @@ class User extends Authenticatable
         return \App\Models\StaffRole::withoutGlobalScopes()->find($this->staff_role_id);
     }
 
+    public function isAdmin()
+    {
+        return $this->role === 'admin' || $this->email === 'safullahzafar@gmail.com';
+    }
+
     public function hasPermission($module, $action = 'view')
     {
-        if ($this->role === 'admin' || $this->email === 'safullahzafar@gmail.com') {
+        if ($this->isAdmin()) {
             return true;
         }
 
