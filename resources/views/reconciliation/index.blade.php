@@ -163,6 +163,7 @@
         <div class="panel-body">
             <form action="{{ route('reconciliation.store') }}" method="POST">
                 @csrf
+                <input type="hidden" name="date" value="{{ $businessDate->format('Y-m-d') }}">
                 <input type="hidden" name="expected_cash" value="{{ ($reconciliation->opening_balance ?? 0) + $totalSales - ($totalExpenses ?? 0) }}">
 
                 <div class="form-field">

@@ -94,15 +94,19 @@ class AdminController extends Controller
                             $q->whereNull('valid_until')->orWhere('valid_until', '>=', $today);
                         })->count();
         
-        $businessDate = CashReconciliation::getCurrentBusinessDate();
-        $reconciliationDone = CashReconciliation::where('date', $businessDate)->where('is_closed', true)->exists();
-        
-        $needsReconciliation = false;
+        $todayDate = Carbon::today();
+        $yesterdayDate = Carbon::yesterday();
+
+        $todayClosed = CashReconciliation::where('date', $todayDate)->where('is_closed', true)->exists();
+        $yesterdayClosed = CashReconciliation::where('date', $yesterdayDate)->where('is_closed', true)->exists();
+
+        $needsReconciliation = !$yesterdayClosed;
         $hoursPastMidnight = 0;
-        if ($businessDate->isYesterday()) {
-            $needsReconciliation = true;
+        if ($needsReconciliation) {
             $hoursPastMidnight = now()->diffInMinutes(now()->startOfDay()) / 60;
         }
+
+        $reconciliationDone = $todayClosed || $yesterdayClosed;
         // Chart Data: Daily Sales (Last 7 Days)
         $dailySales = [];
         for ($i = 6; $i >= 0; $i--) {

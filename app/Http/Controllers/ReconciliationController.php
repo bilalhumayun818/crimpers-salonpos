@@ -16,13 +16,11 @@ class ReconciliationController extends Controller
         $businessDate = CashReconciliation::getCurrentBusinessDate();
         $reconciliation = CashReconciliation::where('date', $businessDate)->first();
         
-        $totalSales = Invoice::where('created_at', '>=', $businessDate->copy()->startOfDay())
-            ->where('created_at', '<=', now())
+        $totalSales = Invoice::whereDate('created_at', $businessDate)
             ->where('payment_method', 'cash')
             ->sum('payable_amount');
 
-        $totalExpenses = Expense::where('created_at', '>=', $businessDate->copy()->startOfDay())
-            ->where('created_at', '<=', now())
+        $totalExpenses = Expense::whereDate('created_at', $businessDate)
             ->where('deducted_from_drawer', true)
             ->sum('amount');
 
@@ -34,12 +32,17 @@ class ReconciliationController extends Controller
         $request->validate([
             'opening_balance' => 'nullable|numeric',
             'actual_cash' => 'nullable|numeric',
+            'date' => 'nullable|date',
         ]);
 
-        $businessDate = CashReconciliation::getCurrentBusinessDate();
+        $businessDate = $request->filled('date')
+            ? Carbon::parse($request->date)->format('Y-m-d')
+            : CashReconciliation::getCurrentBusinessDate();
+
         $reconciliation = CashReconciliation::updateOrCreate(
-            ['date' => $businessDate, 'user_id' => auth()->id() ?? 1],
+            ['date' => $businessDate],
             [
+                'user_id' => auth()->id() ?? 1,
                 'opening_balance' => $request->opening_balance ?? 0,
                 'actual_cash' => $request->actual_cash ?? 0,
                 'expected_cash' => $request->expected_cash ?? 0,
@@ -49,6 +52,6 @@ class ReconciliationController extends Controller
             ]
         );
 
-        return redirect()->back()->with('success', 'Reconciliation closed successfully');
+        return redirect()->route('admin.dashboard')->with('success', 'Cash reconciliation closed and marked as Done!');
     }
 }
