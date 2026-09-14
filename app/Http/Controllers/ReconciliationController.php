@@ -52,6 +52,6 @@ class ReconciliationController extends Controller
             ]
         );
 
-        return redirect()->route('admin.dashboard')->with('success', 'Cash reconciliation closed and marked as Done!');
+        return redirect()->route('admin.index')->with('success', 'Cash reconciliation closed and marked as Done!');
     }
 }
