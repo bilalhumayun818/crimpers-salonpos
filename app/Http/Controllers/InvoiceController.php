@@ -157,11 +157,11 @@ class InvoiceController extends Controller
             $query->where('payable_amount', '<=', $request->max_amount);
         }
 
-        $invoices = $query->latest()->paginate(20)->withQueryString();
+        // Calculate summary statistics for filtered results BEFORE paginate()
+        $totalSales = (clone $query)->sum('payable_amount');
+        $totalInvoices = (clone $query)->count();
 
-        // Calculate summary statistics for filtered results
-        $totalSales = $query->sum('payable_amount');
-        $totalInvoices = $query->count();
+        $invoices = $query->latest()->paginate(20)->withQueryString();
 
         // Calculate period invoices (for the current period if period filter is applied)
         $periodQuery = Invoice::query();

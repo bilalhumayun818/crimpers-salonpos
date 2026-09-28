@@ -115,6 +115,7 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['permission:reconciliation,access'])->group(function() {
         Route::get('/reconciliation', [ReconciliationController::class, 'index'])->name('reconciliation.index');
         Route::post('/reconciliation', [ReconciliationController::class, 'store'])->name('reconciliation.store');
+        Route::post('/reconciliation/opening-balance', [ReconciliationController::class, 'saveOpeningBalance'])->name('reconciliation.opening_balance');
     });
 
     Route::middleware(['permission:expenses,create'])->group(function() {
@@ -274,6 +275,11 @@ Route::middleware(['auth'])->group(function () {
         // New Reports
         Route::get('/reports/customer-purchases', [ReportController::class, 'customerPurchasesReport'])->name('reports.customer-purchases');
         Route::get('/reports/employee-customers', [ReportController::class, 'employeeCustomersReport'])->name('reports.employee-customers');
+
+        // Daily Paper Report
+        Route::get('/reports/daily', [ReportController::class, 'dailyReport'])->name('reports.daily');
+        Route::get('/reports/daily-history', [ReportController::class, 'dailyReportHistory'])->name('reports.daily-history');
+        Route::post('/reports/daily', [ReportController::class, 'saveDailyReport'])->name('reports.daily.save');
     });
 
     Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');

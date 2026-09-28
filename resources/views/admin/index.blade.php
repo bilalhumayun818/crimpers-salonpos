@@ -412,6 +412,14 @@
         @endphp
 
         <div class="qa-grid">
+        <a href="{{ route('reports.daily') }}" class="qa-link" style="background: linear-gradient(135deg, #fffdf0, #fef9c3); border-color: #facc15;">
+            <div class="qa-icon yellow" style="background: #fef08a; color: #854d0e;">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            </div>
+            <div class="qa-text"><strong style="color: #713f12;">Daily Report (Paper Sheet)</strong><span style="color: #a16207;">Branch Daily Paper Form</span></div>
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" class="qa-arrow" style="color:#a16207;"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+
         <a href="{{ route('pos.index') }}" class="qa-link qa-pos-link">
             <div class="qa-icon yellow">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>

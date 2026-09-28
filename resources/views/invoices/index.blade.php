@@ -335,6 +335,9 @@
             </div>
         </div>
         @endforeach
+        @if($invoices->hasPages()) 
+            <div class="pagination-wrap" style="margin-top:16px; border:none; background:transparent;">{{ $invoices->links() }}</div> 
+        @endif
     @else
         <div class="table-wrap">
             <table class="inv-table">

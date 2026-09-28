@@ -4,7 +4,7 @@
 @section('content')
 <style>
 :root{--y1:#F7DF79;--y2:#FBEFBC;--yd:#c9a800;--ybg:#fffdf0;}
-.exp-wrap{max-width:640px;margin:20px auto 0;}
+.exp-wrap{max-width:680px;margin:20px auto 0;}
 .exp-card{background:#fff;border:1.5px solid #e9e0c0;border-radius:20px;box-shadow:0 4px 20px rgba(199,168,0,.08);overflow:hidden;}
 .exp-head{background:linear-gradient(135deg,var(--y1),var(--yd));padding:24px;text-align:center;color:#18181b;}
 .exp-icon{width:56px;height:56px;border-radius:16px;background:rgba(255,255,255,.3);display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;box-shadow:0 4px 12px rgba(0,0,0,.05);}
@@ -29,16 +29,16 @@
 textarea.f-input{resize:vertical;min-height:90px;}
 .f-select{cursor:pointer;}
 
-.toggle-wrap{display:flex;align-items:center;justify-content:space-between;background:#f8fafc;border:1.5px solid #e2e8f0;padding:16px;border-radius:12px;}
-.toggle-info strong{display:block;color:#1e293b;font-weight:700;font-size:.9rem;margin-bottom:2px;}
-.toggle-info span{color:#64748b;font-size:.75rem;}
-
-.toggle-switch{position:relative;display:inline-block;width:56px;height:30px;}
-.toggle-switch input{opacity:0;width:0;height:0;}
-.slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:#cbd5e1;transition:.3s;border-radius:34px;}
-.slider:before{position:absolute;content:"";height:22px;width:22px;left:4px;bottom:4px;background-color:white;transition:.3s;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,.1);}
-input:checked + .slider{background-color:#10b981;}
-input:checked + .slider:before{transform:translateX(26px);}
+/* ── Source Toggle Pill Buttons ── */
+.source-toggle-group{display:flex;gap:0;margin-top:6px;border:2px solid #e2e8f0;border-radius:12px;overflow:hidden;background:#f8fafc;}
+.source-opt{flex:1;position:relative;cursor:pointer;margin:0;}
+.source-opt input[type="radio"]{position:absolute;opacity:0;width:0;height:0;}
+.source-pill{display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 10px;font-size:.85rem;font-weight:700;color:#64748b;background:transparent;transition:all 0.18s ease;white-space:nowrap;border-right:2px solid #e2e8f0;}
+.source-opt:last-child .source-pill{border-right:none;}
+.source-opt:hover .source-pill{background:#f1f5f9;color:#334155;}
+.source-opt.active.drawer-opt .source-pill{background:#dcfce7;color:#166534;font-weight:800;}
+.source-opt.active.savings-opt .source-pill{background:#fef3c7;color:#92400e;font-weight:800;}
+.source-pill svg{width:15px;height:15px;stroke-width:2;flex-shrink:0;}
 
 .exp-footer{padding:0 32px 32px;}
 .btn-submit{width:100%;padding:16px;background:#18181b;color:var(--y1);border:none;border-radius:12px;font-size:1rem;font-weight:800;cursor:pointer;font-family:'Outfit',sans-serif;transition:.2s;}
@@ -95,7 +95,7 @@ input:checked + .slider:before{transform:translateX(26px);}
             <input type="hidden" name="staff_id" id="form_staff_id" value="">
             <input type="hidden" name="description" id="form_description" value="">
             <input type="hidden" name="amount" id="form_amount" value="">
-            <input type="hidden" name="deducted_from_drawer" id="form_deduct" value="0">
+            <input type="hidden" name="deducted_from_drawer" id="form_deduct" value="1">
 
             <div class="exp-body">
 
@@ -116,16 +116,24 @@ input:checked + .slider:before{transform:translateX(26px);}
                         <div style="color:#ef4444;font-size:.75rem;margin-top:6px;font-weight:600;display:none;" class="err-amt-daily"></div>
                     </div>
 
-                    <div class="toggle-wrap">
-                        <div class="toggle-info">
-                            <strong>Deduct from Drawer?</strong>
-                            <span>Did you take cash out of the register for this?</span>
+                    <div class="f-row">
+                        <label class="f-label">Payment Source *</label>
+                        <div class="source-toggle-group">
+                            <label class="source-opt active drawer-opt" onclick="selectExpenseSource('drawer', this)">
+                                <input type="radio" name="source_daily" value="drawer" checked class="source-radio">
+                                <div class="source-pill">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20M6 14h.01M10 14h4"/></svg>
+                                    Cash Drawer
+                                </div>
+                            </label>
+                            <label class="source-opt savings-opt" onclick="selectExpenseSource('savings', this)">
+                                <input type="radio" name="source_daily" value="savings" class="source-radio">
+                                <div class="source-pill">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"/></svg>
+                                    Savings
+                                </div>
+                            </label>
                         </div>
-                        <label class="toggle-switch">
-                            <input type="hidden" name="deducted_from_drawer_daily" value="0">
-                            <input type="checkbox" name="deducted_from_drawer_daily" value="1" checked>
-                            <span class="slider"></span>
-                        </label>
                     </div>
                 </div>
 
@@ -184,16 +192,24 @@ input:checked + .slider:before{transform:translateX(26px);}
                         <div style="color:#ef4444;font-size:.75rem;margin-top:6px;font-weight:600;display:none;" class="err-amt-fixed"></div>
                     </div>
 
-                    <div class="toggle-wrap">
-                        <div class="toggle-info">
-                            <strong>Deduct from Drawer?</strong>
-                            <span>Did you take cash out of the register for this?</span>
+                    <div class="f-row">
+                        <label class="f-label">Payment Source *</label>
+                        <div class="source-toggle-group">
+                            <label class="source-opt active drawer-opt" onclick="selectExpenseSource('drawer', this)">
+                                <input type="radio" name="source_fixed" value="drawer" checked class="source-radio">
+                                <div class="source-pill">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20M6 14h.01M10 14h4"/></svg>
+                                    Cash Drawer
+                                </div>
+                            </label>
+                            <label class="source-opt savings-opt" onclick="selectExpenseSource('savings', this)">
+                                <input type="radio" name="source_fixed" value="savings" class="source-radio">
+                                <div class="source-pill">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"/></svg>
+                                    Savings
+                                </div>
+                            </label>
                         </div>
-                        <label class="toggle-switch">
-                            <input type="hidden" name="deducted_from_drawer_fixed" value="0">
-                            <input type="checkbox" name="deducted_from_drawer_fixed" value="1" checked>
-                            <span class="slider"></span>
-                        </label>
                     </div>
                 </div>
 
@@ -269,9 +285,6 @@ input:checked + .slider:before{transform:translateX(26px);}
                                 <div>Advances Taken: <strong style="color:#eab308;" id="sb-adv">Rs. 0.00</strong></div>
                                 <div>Other Deductions: <strong style="color:#dc2626;" id="sb-ded">Rs. 0.00</strong></div>
                             </div>
-                                <div>Advances Taken: <strong style="color:#eab308;" id="sb-adv">Rs. 0.00</strong></div>
-                                <div>Other Deductions: <strong style="color:#dc2626;" id="sb-ded">Rs. 0.00</strong></div>
-                            </div>
                             <div style="border-top:1px dashed #cbd5e1; margin-top:8px; padding-top:6px; font-weight:800; color:#16a34a; font-size:0.9rem;">
                                 Net Payable: <span id="sb-net">Rs. 0.00</span>
                             </div>
@@ -314,16 +327,24 @@ input:checked + .slider:before{transform:translateX(26px);}
                         <div style="color:#ef4444;font-size:.75rem;margin-top:6px;font-weight:600;display:none;" class="err-amt-staff"></div>
                     </div>
 
-                    <div class="toggle-wrap">
-                        <div class="toggle-info">
-                            <strong>Deduct from Drawer?</strong>
-                            <span>Did you take cash out of the register for this?</span>
+                    <div class="f-row">
+                        <label class="f-label">Payment Source *</label>
+                        <div class="source-toggle-group">
+                            <label class="source-opt active drawer-opt" onclick="selectExpenseSource('drawer', this)">
+                                <input type="radio" name="source_staff" value="drawer" checked class="source-radio">
+                                <div class="source-pill">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20M6 14h.01M10 14h4"/></svg>
+                                    Cash Drawer
+                                </div>
+                            </label>
+                            <label class="source-opt savings-opt" onclick="selectExpenseSource('savings', this)">
+                                <input type="radio" name="source_staff" value="savings" class="source-radio">
+                                <div class="source-pill">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"/></svg>
+                                    Savings
+                                </div>
+                            </label>
                         </div>
-                        <label class="toggle-switch">
-                            <input type="hidden" name="deducted_from_drawer_staff" value="0">
-                            <input type="checkbox" name="deducted_from_drawer_staff" value="1" checked>
-                            <span class="slider"></span>
-                        </label>
                     </div>
                 </div>
 
@@ -347,6 +368,14 @@ function switchTab(tab) {
     document.getElementById(tab + '-tab').classList.add('active');
     event.target.classList.add('active');
     currentTab = tab;
+}
+
+function selectExpenseSource(sourceVal, element) {
+    const tabContent = element.closest('.tab-content');
+    tabContent.querySelectorAll('.source-opt').forEach(opt => opt.classList.remove('active'));
+    element.classList.add('active');
+    const radio = element.querySelector('input[type="radio"]');
+    if (radio) radio.checked = true;
 }
 
 function selectCategory(cat) {
@@ -485,7 +514,8 @@ function prepareSubmit() {
     if (currentTab === 'daily') {
         desc = document.getElementById('desc-daily').value.trim();
         amt = document.getElementById('amt-daily').value;
-        deduct = document.querySelector('input[name="deducted_from_drawer_daily"]:checked') ? 1 : 0;
+        const activeOpt = document.querySelector('#daily-tab .source-opt.active input[type="radio"]');
+        deduct = activeOpt && activeOpt.value === 'drawer' ? 1 : 0;
         
         if (!desc) { document.querySelector('.err-daily').textContent = 'Description required'; document.querySelector('.err-daily').style.display = 'block'; return false; }
         if (!amt || amt <= 0) { document.querySelector('.err-amt-daily').textContent = 'Valid amount required'; document.querySelector('.err-amt-daily').style.display = 'block'; return false; }
@@ -494,7 +524,8 @@ function prepareSubmit() {
         if (!selectedCategory) { alert('Please select a category'); return false; }
         desc = document.getElementById('desc-fixed').value.trim();
         amt = document.getElementById('amt-fixed').value;
-        deduct = document.querySelector('input[name="deducted_from_drawer_fixed"]:checked') ? 1 : 0;
+        const activeOpt = document.querySelector('#fixed-tab .source-opt.active input[type="radio"]');
+        deduct = activeOpt && activeOpt.value === 'drawer' ? 1 : 0;
         
         if (!desc) { document.querySelector('.err-fixed').textContent = 'Description required'; document.querySelector('.err-fixed').style.display = 'block'; return false; }
         if (!amt || amt <= 0) { document.querySelector('.err-amt-fixed').textContent = 'Valid amount required'; document.querySelector('.err-amt-fixed').style.display = 'block'; return false; }
@@ -504,7 +535,8 @@ function prepareSubmit() {
         let staffCat = document.getElementById('staff-cat').value;
         desc = document.getElementById('desc-staff').value.trim();
         amt = document.getElementById('amt-staff').value;
-        deduct = document.querySelector('input[name="deducted_from_drawer_staff"]:checked') ? 1 : 0;
+        const activeOpt = document.querySelector('#staff-tab .source-opt.active input[type="radio"]');
+        deduct = activeOpt && activeOpt.value === 'drawer' ? 1 : 0;
         
         if (!staffId) { document.querySelector('.err-staff-id').textContent = 'Staff member required'; document.querySelector('.err-staff-id').style.display = 'block'; return false; }
         if (!staffCat) { document.querySelector('.err-staff-cat').textContent = 'Expense type required'; document.querySelector('.err-staff-cat').style.display = 'block'; return false; }

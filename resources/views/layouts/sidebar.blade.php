@@ -280,6 +280,8 @@
                 <svg class="section-chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
             </div>
             <div class="sub-menu">
+                <a href="{{ route('reports.daily') }}" class="sub-link {{ request()->routeIs('reports.daily') ? 'active-sub' : '' }}">Daily Sheet Report</a>
+                <a href="{{ route('reports.daily-history') }}" class="sub-link {{ request()->routeIs('reports.daily-history') ? 'active-sub' : '' }}">Daily Sheet History</a>
                 <a href="{{ route('reports.index') }}" class="sub-link {{ request()->routeIs('reports.index') ? 'active-sub' : '' }}">Business Intelligence</a>
                 <a href="{{ route('reports.pos') }}" class="sub-link {{ request()->routeIs('reports.pos') ? 'active-sub' : '' }}">POS Sales Report</a>
                 <a href="{{ route('reports.staff') }}" class="sub-link {{ request()->routeIs('reports.staff') ? 'active-sub' : '' }}">Staff Details Report</a>

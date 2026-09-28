@@ -11,6 +11,9 @@ use App\Models\ProductUsage;
 use App\Models\Service;
 use App\Models\Staff;
 use App\Models\StaffAttendance;
+use App\Models\Branch;
+use App\Models\DailyReport;
+use App\Models\Expense;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -491,5 +494,237 @@ class ReportController extends Controller
         }
 
         return view('reports.employee-customers', compact('employeeRecords', 'dateFrom', 'dateTo'));
+    }
+
+    public function dailyReport(\Illuminate\Http\Request $request)
+    {
+        $branchId = session('current_branch_id', auth()->user()->branch_id ?? 1);
+        $branch = Branch::find($branchId) ?? Branch::first();
+
+        $dateStr = $request->get('date', Carbon::today()->format('Y-m-d'));
+        try {
+            $carbonDate = Carbon::parse($dateStr);
+        } catch (\Exception $e) {
+            $carbonDate = Carbon::today();
+            $dateStr = $carbonDate->format('Y-m-d');
+        }
+
+        $formattedHeaderDate = $carbonDate->format('d-m-y') . ' ' . substr($carbonDate->format('D'), 0, 3) . '.';
+        $dayOfWeek = $carbonDate->format('l');
+
+        // Fetch active staff for this branch
+        $activeStaff = Staff::where(function($q) use ($branch) {
+            $q->where('branch_id', $branch->id)
+              ->orWhereNull('branch_id');
+        })->where('status', true)->get();
+
+        // Check if report exists for this branch and date
+        $report = DailyReport::where('branch_id', $branch->id)
+            ->whereDate('report_date', $dateStr)
+            ->first();
+
+        // Always fetch attendance records for this date to display check-in times
+        $attendances = StaffAttendance::whereDate('attendance_date', $dateStr)->get()->keyBy('staff_id');
+        $autoAttendance = [];
+        foreach ($activeStaff as $st) {
+            if (isset($attendances[$st->id])) {
+                $att = $attendances[$st->id];
+                if ($att->status === 'absent' || $att->status === 'leave') {
+                    $autoAttendance[$st->id] = 'Leave';
+                } elseif ($att->check_in_time) {
+                    $autoAttendance[$st->id] = Carbon::parse($att->check_in_time)->format('H:i');
+                }
+            }
+        }
+
+        // Auto-fill sales and online payments from invoices for this date
+        $start = $carbonDate->copy()->startOfDay();
+        $end = $carbonDate->copy()->endOfDay();
+
+        $invoices = Invoice::with('staff')
+            ->where('branch_id', $branch->id)
+            ->whereBetween('created_at', [$start, $end])
+            ->get();
+
+        $autoSales = ['rows' => [], 'discounts' => []];
+        $autoOnlinePayments = ['card' => [], 'bank' => []];
+        $autoPendingPayments = [];
+        $autoCashSales = 0;
+        $autoCashEntries = []; // individual cash amounts for balance display
+
+        $staffInvoices = [];
+        $firstStaffId = $activeStaff->first()->id ?? null;
+
+        foreach ($invoices as $inv) {
+            $pm = strtolower($inv->payment_method ?? '');
+            if ($pm === 'card') {
+                $autoOnlinePayments['card'][] = (float) $inv->payable_amount;
+            } elseif ($pm === 'bank' || $pm === 'hbl' || $pm === 'easypaisa' || $pm === 'jazzcash' || !empty($inv->bank_name)) {
+                $autoOnlinePayments['bank'][] = (float) $inv->payable_amount;
+            } elseif ($pm === 'pending' || $pm === 'credit' || $pm === 'pay_later' || $pm === 'unpaid' || floatval($inv->pending_amount) > 0) {
+                $pendAmt = floatval($inv->pending_amount) > 0 ? (float)$inv->pending_amount : (float)$inv->payable_amount;
+                $custName = $inv->customer_name ?: ($inv->customer->name ?? 'Customer');
+                $autoPendingPayments[] = "Inv #{$inv->invoice_no} ({$custName}): " . number_format($pendAmt);
+            } elseif ($pm === 'split') {
+                if (!empty($inv->split_bank) && floatval($inv->split_bank) > 0) {
+                    $autoOnlinePayments['bank'][] = (float) $inv->split_bank;
+                }
+                if (!empty($inv->pending_amount) && floatval($inv->pending_amount) > 0) {
+                    $custName = $inv->customer_name ?: ($inv->customer->name ?? 'Customer');
+                    $autoPendingPayments[] = "Inv #{$inv->invoice_no} ({$custName} Pending): " . number_format($inv->pending_amount);
+                }
+                $splitCash = max(0, (float)$inv->payable_amount - (float)$inv->split_bank - (float)$inv->pending_amount);
+                if ($splitCash > 0) {
+                    $autoCashSales += $splitCash;
+                    $autoCashEntries[] = $splitCash;
+                }
+            } else {
+                $autoCashSales += (float) $inv->payable_amount;
+                $autoCashEntries[] = (float) $inv->payable_amount;
+            }
+
+            $sId = $inv->staff_id ?: $firstStaffId;
+            if ($sId) {
+                $staffInvoices[$sId][] = (float) $inv->payable_amount;
+            }
+        }
+
+        foreach ($staffInvoices as $sId => $amounts) {
+            foreach ($amounts as $idx => $amt) {
+                $rowNum = $idx + 1;
+                if ($rowNum <= 30) {
+                    $autoSales['rows'][$rowNum][$sId] = $amt;
+                }
+            }
+        }
+
+        // Fetch recorded Expenses for this branch and date from the expenses table
+        $systemExpenses = Expense::where(function($q) use ($branch) {
+                $q->where('branch_id', $branch->id)
+                  ->orWhereNull('branch_id');
+            })
+            ->whereDate('created_at', $dateStr)
+            ->with(['staff', 'user'])
+            ->get();
+
+        $drawerExpensesTotal = (float) $systemExpenses->where('deducted_from_drawer', true)->sum('amount');
+        $nonDrawerExpensesTotal = (float) $systemExpenses->where('deducted_from_drawer', false)->sum('amount');
+        $totalSystemExpenses = $drawerExpensesTotal + $nonDrawerExpensesTotal;
+
+        $fixedSystemExpenses = $systemExpenses->where('expense_type', 'fixed');
+        $fixedExpensesTotal = (float) $fixedSystemExpenses->sum('amount');
+
+        $dailySystemExpenses = $systemExpenses->where('expense_type', 'daily');
+        $dailyExpensesTotal = (float) $dailySystemExpenses->sum('amount');
+
+        $staffSystemExpenses = $systemExpenses->where('expense_type', 'staff');
+        $staffExpensesTotal = (float) $staffSystemExpenses->sum('amount');
+
+        // Calculate Previous Days Cumulative Savings Carryforward
+        $previousReports = DailyReport::where(function($q) use ($branch) {
+                $q->where('branch_id', $branch->id)
+                  ->orWhereNull('branch_id');
+            })
+            ->whereDate('report_date', '<', $dateStr)
+            ->get();
+
+        $previousSavingsCarryforward = 0;
+        foreach ($previousReports as $pr) {
+            $sData = $pr->summary_data ?? [];
+            if (isset($sData['savings'])) {
+                $previousSavingsCarryforward += (float)$sData['savings'];
+            }
+        }
+
+        return view('reports.daily', compact(
+            'branch',
+            'dateStr',
+            'carbonDate',
+            'formattedHeaderDate',
+            'dayOfWeek',
+            'activeStaff',
+            'report',
+            'autoAttendance',
+            'autoSales',
+            'autoOnlinePayments',
+            'autoPendingPayments',
+            'autoCashSales',
+            'autoCashEntries',
+            'systemExpenses',
+            'drawerExpensesTotal',
+            'nonDrawerExpensesTotal',
+            'totalSystemExpenses',
+            'fixedSystemExpenses',
+            'fixedExpensesTotal',
+            'dailySystemExpenses',
+            'dailyExpensesTotal',
+            'staffSystemExpenses',
+            'staffExpensesTotal',
+            'previousSavingsCarryforward'
+        ));
+    }
+
+    public function saveDailyReport(\Illuminate\Http\Request $request)
+    {
+        $branchId = session('current_branch_id', auth()->user()->branch_id ?? 1);
+        $reportDate = $request->input('report_date', Carbon::today()->format('Y-m-d'));
+
+        $report = DailyReport::updateOrCreate(
+            [
+                'branch_id' => $branchId,
+                'report_date' => $reportDate,
+            ],
+            [
+                'other_expenditures'     => $request->input('other_expenditures'),
+                'dbt_crd'               => $request->input('dbt_crd'),
+                'expenditures_amount'   => $request->input('expenditures_amount'),
+                'cosmetics_notes'       => $request->input('cosmetics_notes'),
+                'cosmetics_total'       => (float) $request->input('cosmetics_total', 0),
+                'staff_notes'           => $request->input('staff_notes'),
+                'staff_total_monetary'  => (float) $request->input('staff_total_monetary', 0),
+                // Bank payments
+                'easypaisa_entries'     => $request->input('easypaisa_entries', []),
+                'easypaisa_total'       => (float) $request->input('easypaisa_total', 0),
+                // Card payments
+                'card_hbl_entries'      => $request->input('card_hbl_entries', []),
+                'card_hbl_total'        => (float) $request->input('card_hbl_total', 0),
+                // Cash payments
+                'cash_entries'          => $request->input('cash_entries', []),
+                'cash_total'            => (float) $request->input('cash_total', 0),
+                // Split payments (mixed cash+card/bank)
+                'split_entries'         => $request->input('split_entries', []),
+                'split_total'           => (float) $request->input('split_total', 0),
+                // Other sections
+                'ol_paid_entries'       => $request->input('ol_paid_entries', []),
+                'ol_paid_total'         => (float) $request->input('ol_paid_total', 0),
+                // Pending payments (was paid_from_c3)
+                'paid_from_c3_entries'  => $request->input('paid_from_c3_entries', []),
+                'paid_from_c3_total'    => (float) $request->input('paid_from_c3_total', 0),
+                'personal_exp_total'    => (float) $request->input('personal_exp_total', 0),
+                'mzn_bank_amount'       => (float) $request->input('mzn_bank_amount', 0),
+                'staff_sales_data'      => $request->input('staff_sales_data', []),
+                'staff_status_data'     => $request->input('staff_status_data', []),
+                'summary_data'          => $request->input('summary_data', []),
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Daily Report saved successfully!',
+            'report_id' => $report->id,
+        ]);
+    }
+
+    public function dailyReportHistory(\Illuminate\Http\Request $request)
+    {
+        $branchId = session('current_branch_id', auth()->user()->branch_id ?? 1);
+        $reports = DailyReport::with('branch')
+            ->where(function($q) use ($branchId) {
+                $q->where('branch_id', $branchId)->orWhereNull('branch_id');
+            })
+            ->orderBy('report_date', 'desc')
+            ->paginate(20);
+
+        return view('reports.daily-history', compact('reports'));
     }
 }
