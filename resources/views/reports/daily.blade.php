@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Daily Sheet Report - ' . $branch->name)
 
 @section('content')
@@ -244,14 +244,6 @@
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             Daily Sheet History
         </a>
-
-        <span id="saveStatus" style="font-size: 0.82rem; font-weight: 800; color: #16a34a; display: none;">✓ Saved</span>
-
-        <button type="button" class="btn-action btn-save" onclick="saveReport()">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-            Save Daily Report
-        </button>
-
         <button type="button" class="btn-action btn-print" onclick="window.print()">
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
             Print Sheet
@@ -317,9 +309,9 @@
         </div>
 
         @php
-            $savedSales = $report->staff_sales_data ?? [];
-            $savedStatus = $report->staff_status_data ?? [];
-            $savedSummary = $report->summary_data ?? [];
+            $savedSales = $report?->staff_sales_data ?? [];
+            $savedStatus = $report?->staff_status_data ?? [];
+            $savedSummary = $report?->summary_data ?? [];
 
             $maxSavedRow = 0;
             if (!empty($savedSales['rows']) && is_array($savedSales['rows'])) {
@@ -363,7 +355,7 @@
                         @foreach($activeStaff as $staff)
                             @php $val = $savedSales['time_ta'][$staff->id] ?? ($autoAttendance[$staff->id] ?? ''); @endphp
                             <td>
-                                <input type="text" class="sheet-input input-time-ta" data-staff-id="{{ $staff->id }}" value="{{ $val }}" placeholder="HH:mm">
+                                <input type="text" class="sheet-input input-time-ta" data-staff-id="{{ $staff->id }}" readonly value="{{ $val }}" placeholder="HH:mm">
                             </td>
                         @endforeach
                         <td style="background:#fafafa;"></td>
@@ -375,7 +367,7 @@
                         @foreach($activeStaff as $staff)
                             @php $val = $savedSales['fine'][$staff->id] ?? ''; @endphp
                             <td>
-                                <input type="number" step="any" class="sheet-input input-fine calc-trigger" data-staff-id="{{ $staff->id }}" value="{{ $val }}" placeholder="0">
+                                <input type="number" step="any" class="sheet-input input-fine calc-trigger" data-staff-id="{{ $staff->id }}" readonly value="{{ $val }}" placeholder="0">
                             </td>
                         @endforeach
                         <td style="background:#fafafa;"></td>
@@ -391,7 +383,7 @@
                                 $val = ($savedVal !== null && $savedVal !== '') ? $savedVal : ($autoSales['rows'][$r][$staff->id] ?? ''); 
                             @endphp
                             <td>
-                                <input type="number" step="any" class="sheet-input sales-cell calc-trigger" data-row="{{ $r }}" data-staff-id="{{ $staff->id }}" value="{{ $val }}">
+                                <input type="number" step="any" class="sheet-input sales-cell calc-trigger" data-row="{{ $r }}" data-staff-id="{{ $staff->id }}" readonly value="{{ $val }}">
                             </td>
                         @endforeach
                         <td style="background:#fafafa; font-size:0.72rem; color:#71717a; text-align:center; padding:1px 4px;">
@@ -416,7 +408,7 @@
                         @foreach($activeStaff as $staff)
                             @php $comsnVal = $savedSales['comsn'][$staff->id] ?? ''; @endphp
                             <td style="background: #fffbeb;">
-                                <input type="number" step="any" class="sheet-input input-comsn calc-trigger" data-staff-id="{{ $staff->id }}" value="{{ $comsnVal }}" placeholder="0" style="color: #92400e; font-weight: 800;">
+                                <input type="number" step="any" class="sheet-input input-comsn calc-trigger" data-staff-id="{{ $staff->id }}" readonly value="{{ $comsnVal }}" placeholder="0" style="color: #92400e; font-weight: 800;">
                             </td>
                         @endforeach
                         <td id="totalComsnCell" style="font-weight: 900; text-align: center; color: #92400e; background: #fef3c7;">0</td>
@@ -431,13 +423,13 @@
                 <div style="font-weight: 800; font-size: 0.85rem; text-align: center; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; background: #f4f4f5; padding: 4px;">
                     (Other Expenditures)
                 </div>
-                <textarea id="otherExpendituresText" class="sheet-textarea" rows="3" placeholder="Enter miscellaneous daily expenditures notes & amounts...">{{ $report->other_expenditures ?? '' }}</textarea>
+                <textarea id="otherExpendituresText" class="sheet-textarea" rows="3" placeholder="Enter miscellaneous daily expenditures notes & amounts..." readonly>{{ $report?->other_expenditures ?? '' }}</textarea>
             </div>
             <div style="padding: 8px;">
                 <div style="font-weight: 800; font-size: 0.85rem; text-align: center; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; background: #f4f4f5; padding: 4px;">
                     Dbt / Crd
                 </div>
-                <textarea id="dbtCrdText" class="sheet-textarea calc-trigger" rows="3" placeholder="Debit / Credit working & amount...">{{ $report->dbt_crd ?? '' }}</textarea>
+                <textarea id="dbtCrdText" class="sheet-textarea calc-trigger" rows="3" placeholder="Debit / Credit working & amount..." readonly>{{ $report?->dbt_crd ?? '' }}</textarea>
             </div>
         </div>
 
@@ -450,7 +442,7 @@
                     Expenditures
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 6px; font-size: 0.82rem;">
-                    <textarea id="expendituresAmount" class="sheet-textarea calc-trigger" rows="4" placeholder="Enter expenditures & notes (e.g. Food 260+50, Tea 250)...">{{ $report->expenditures_amount ?? '' }}</textarea>
+                    <textarea id="expendituresAmount" class="sheet-textarea calc-trigger" rows="4" placeholder="Enter expenditures & notes (e.g. Food 260+50, Tea 250)..." readonly>{{ $report?->expenditures_amount ?? '' }}</textarea>
                     @if(isset($dailySystemExpenses) && $dailySystemExpenses->count() > 0)
                         <div style="font-size: 0.72rem; margin-top: 4px; border-top: 1px dashed #d4d4d8; padding-top: 4px;">
                             <span style="font-weight: 800; color: #3f3f46; display: block; margin-bottom: 2px;">System Daily Exp:</span>
@@ -476,7 +468,7 @@
                 <div style="font-weight: 800; font-size: 0.8rem; background: #f4f4f5; padding: 4px; text-align: center; border-bottom: 1px solid #27272a; margin-bottom: 6px;">
                     + Cosmetics
                 </div>
-                <textarea id="cosmeticsNotes" class="sheet-textarea calc-trigger" style="flex: 1;" placeholder="Cosmetics amounts & notes...">{{ $report->cosmetics_notes ?? '' }}</textarea>
+                <textarea id="cosmeticsNotes" class="sheet-textarea calc-trigger" style="flex: 1;" placeholder="Cosmetics amounts & notes..." readonly>{{ $report?->cosmetics_notes ?? '' }}</textarea>
                 <div style="margin-top: 6px; font-weight: 800; font-size: 0.82rem; background: #fafafa; padding: 6px; border-top: 1px solid #e4e4e7; display: flex; justify-content: space-between;">
                     <span>Total Cos:</span>
                     <span id="cosTotalDisplay">0</span>
@@ -501,7 +493,7 @@
                         <tr>
                             <td style="font-weight: 700; text-align: left; padding: 2px 4px; font-size: 0.78rem;">{{ $st->name }}</td>
                             <td style="padding: 1px;">
-                                <input type="text" class="sheet-input staff-status-input" data-staff-id="{{ $st->id }}" value="{{ $stVal }}" style="font-size: 0.78rem; padding: 1px;" placeholder="Time or Leave">
+                                <input type="text" class="sheet-input staff-status-input" data-staff-id="{{ $st->id }}" readonly value="{{ $stVal }}" style="font-size: 0.78rem; padding: 1px;" placeholder="Time or Leave">
                             </td>
                         </tr>
                         @endforeach
@@ -510,7 +502,7 @@
                 
                 <div style="border-top: 1px dashed #a1a1aa; padding-top: 4px; margin-top: 4px; flex: 1;">
                     <label style="font-size: 0.72rem; font-weight: 800; color: #3f3f46; display: block; margin-bottom: 2px;">Staff Monetary Notes:</label>
-                    <textarea id="staffNotes" class="sheet-textarea calc-trigger" rows="3" style="font-size: 0.78rem;" placeholder="e.g. 300, 300+650, 17500">{{ $report->staff_notes ?? '' }}</textarea>
+                    <textarea id="staffNotes" class="sheet-textarea calc-trigger" rows="3" style="font-size: 0.78rem;" placeholder="e.g. 300, 300+650, 17500" readonly>{{ $report?->staff_notes ?? '' }}</textarea>
                     @if(isset($staffSystemExpenses) && $staffSystemExpenses->count() > 0)
                         <div style="font-size: 0.72rem; margin-top: 4px; border-top: 1px dashed #d4d4d8; padding-top: 4px;">
                             <span style="font-weight: 800; color: #3f3f46; display: block; margin-bottom: 2px;">System Staff Exp:</span>
@@ -535,7 +527,6 @@
             <div style="border-right: 1px solid #27272a; padding: 6px; display: flex; flex-direction: column;">
                 <div style="font-weight: 800; font-size: 0.8rem; background: #f4f4f5; padding: 4px; text-align: center; border-bottom: 1px solid #27272a; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
                     <span>Online Payments</span>
-                    <button type="button" onclick="addOnlineRow()" style="background: #18181b; color: #fff; border: none; border-radius: 4px; font-size: 0.68rem; font-weight: 800; padding: 1px 6px; cursor: pointer;">+ Row</button>
                 </div>
                 
                 <table class="sheet-table" style="margin-bottom: 6px;">
@@ -547,17 +538,17 @@
                     </thead>
                     <tbody id="onlinePaymentRows">
                         @php
-                            $cardEntries = !empty($report->card_hbl_entries) ? $report->card_hbl_entries : ($autoOnlinePayments['card'] ?? []);
-                            $bankEntries = !empty($report->easypaisa_entries) ? $report->easypaisa_entries : ($autoOnlinePayments['bank'] ?? []);
+                            $cardEntries = !empty($report?->card_hbl_entries) ? $report?->card_hbl_entries : ($autoOnlinePayments['card'] ?? []);
+                            $bankEntries = !empty($report?->easypaisa_entries) ? $report?->easypaisa_entries : ($autoOnlinePayments['bank'] ?? []);
                             $maxRows = max(10, count($cardEntries), count($bankEntries));
                         @endphp
                         @for($i = 0; $i < $maxRows; $i++)
                         <tr>
                             <td style="padding: 1px;">
-                                <input type="number" step="any" class="sheet-input card-cell calc-trigger" value="{{ $cardEntries[$i] ?? '' }}" style="font-size: 0.78rem; padding: 1px;">
+                                <input type="number" step="any" class="sheet-input card-cell calc-trigger" value="{{ $cardEntries[$i] ?? '' }}" style="font-size: 0.78rem; padding: 1px;" readonly>
                             </td>
                             <td style="padding: 1px;">
-                                <input type="number" step="any" class="sheet-input ep-cell calc-trigger" value="{{ $bankEntries[$i] ?? '' }}" style="font-size: 0.78rem; padding: 1px;">
+                                <input type="number" step="any" class="sheet-input ep-cell calc-trigger" value="{{ $bankEntries[$i] ?? '' }}" style="font-size: 0.78rem; padding: 1px;" readonly>
                             </td>
                         </tr>
                         @endfor
@@ -576,11 +567,10 @@
             <div style="padding: 6px; display: flex; flex-direction: column;">
                 <div style="font-weight: 800; font-size: 0.8rem; background: #f4f4f5; padding: 4px; text-align: center; border-bottom: 1px solid #27272a; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
                     <span>💵 Cash Payments</span>
-                    <button type="button" onclick="addCashRow()" style="background: #18181b; color: #fff; border: none; border-radius: 4px; font-size: 0.68rem; font-weight: 800; padding: 1px 6px; cursor: pointer;">+ Row</button>
                 </div>
                 
                 @php
-                    $savedCashEntries = $report->cash_entries ?? null;
+                    $savedCashEntries = $report?->cash_entries ?? null;
                     $cashRows = !empty($savedCashEntries) ? $savedCashEntries : (!empty($autoCashEntries) ? $autoCashEntries : []);
                     $cashMaxRows = max(8, count($cashRows));
                 @endphp
@@ -591,7 +581,7 @@
                         <tr>
                             <td style="padding: 1px; text-align: center; font-size: 0.7rem; color: #71717a; width: 20px;">{{ $ci + 1 }}</td>
                             <td style="padding: 1px;">
-                                <input type="number" step="any" class="sheet-input cash-cell calc-trigger" value="{{ $cashRows[$ci] ?? '' }}" style="font-size: 0.78rem; padding: 1px;" placeholder="0">
+                                <input type="number" step="any" class="sheet-input cash-cell calc-trigger" value="{{ $cashRows[$ci] ?? '' }}" style="font-size: 0.78rem; padding: 1px;" placeholder="0" readonly>
                             </td>
                         </tr>
                         @endfor
@@ -614,7 +604,7 @@
                 <div style="font-weight: 800; font-size: 0.78rem; background: #f4f4f5; padding: 4px; text-align: center; border-bottom: 1px solid #27272a; margin-bottom: 6px;">
                     (O/L Paid)
                 </div>
-                <textarea id="olPaidNotes" class="sheet-textarea calc-trigger" rows="4" placeholder="Amount / notes...">{{ is_array($report->ol_paid_entries ?? null) ? implode("\n", $report->ol_paid_entries) : ($report->ol_paid_entries ?? '') }}</textarea>
+                <textarea id="olPaidNotes" class="sheet-textarea calc-trigger" rows="4" placeholder="Amount / notes..." readonly>{{ is_array($report?->ol_paid_entries ?? null) ? implode("\n", $report?->ol_paid_entries) : ($report?->ol_paid_entries ?? '') }}</textarea>
                 <div style="margin-top: 4px; font-weight: 800; font-size: 0.8rem; background: #fafafa; padding: 4px; border-top: 1px solid #e4e4e7; display: flex; justify-content: space-between;">
                     <span>Total O/L:</span>
                     <span id="olTotalDisplay">0</span>
@@ -627,11 +617,11 @@
                     Pending Payments
                 </div>
                 @php
-                    $pendingVal = is_array($report->paid_from_c3_entries ?? null)
-                        ? implode("\n", $report->paid_from_c3_entries)
-                        : ($report->paid_from_c3_entries ?? (!empty($autoPendingPayments) ? implode("\n", $autoPendingPayments) : ''));
+                    $pendingVal = is_array($report?->paid_from_c3_entries ?? null)
+                        ? implode("\n", $report?->paid_from_c3_entries)
+                        : ($report?->paid_from_c3_entries ?? (!empty($autoPendingPayments) ? implode("\n", $autoPendingPayments) : ''));
                 @endphp
-                <textarea id="paidFromC3Notes" class="sheet-textarea calc-trigger" rows="4" placeholder="Pending payment notes & amounts (e.g. 15,000 Online Transfer Pending, 5,000 Card Pending, 3,200 Bank Transfer Pending)...">{{ $pendingVal }}</textarea>
+                <textarea id="paidFromC3Notes" class="sheet-textarea calc-trigger" rows="4" placeholder="Pending payment notes & amounts (e.g. 15,000 Online Transfer Pending, 5,000 Card Pending, 3,200 Bank Transfer Pending)..." readonly>{{ $pendingVal }}</textarea>
                 <div style="margin-top: 4px; font-weight: 800; font-size: 0.8rem; background: #fafafa; padding: 4px; border-top: 1px solid #e4e4e7; display: flex; justify-content: space-between;">
                     <span>Total Pending:</span>
                     <span id="c3TotalDisplay">0</span>
@@ -666,7 +656,7 @@
                 <div style="border-top: 1.5px solid #27272a; padding-top: 6px; margin-top: 6px;">
                     <div style="display: flex; align-items: center; gap: 6px;">
                         <label style="font-weight: 900; font-size: 0.82rem; white-space: nowrap;">MZN Bank:</label>
-                        <input type="number" step="any" id="mznBankAmount" class="sheet-input sheet-input-left calc-trigger" style="border: 1px solid #27272a; border-radius: 4px; padding: 3px 6px; font-weight: 800;" value="{{ $report->mzn_bank_amount ?? '' }}" placeholder="0">
+                        <input type="number" step="any" id="mznBankAmount" class="sheet-input sheet-input-left calc-trigger" style="border: 1px solid #27272a; border-radius: 4px; padding: 3px 6px; font-weight: 800;" value="{{ $report?->mzn_bank_amount ?? '' }}" readonly placeholder="0">
                     </div>
                 </div>
             </div>
@@ -706,7 +696,7 @@
                         <tr>
                             <td class="summary-label">Dbt/Crd</td>
                             <td class="summary-val-td">
-                                <input type="number" step="any" id="sum_dbt_crd_input" class="sheet-input calc-trigger" style="text-align: right; font-weight: 700; font-size: 0.8rem; padding: 0;" value="{{ $savedSummary['dbt_crd'] ?? '' }}" placeholder="0">
+                                <input type="number" step="any" id="sum_dbt_crd_input" class="sheet-input calc-trigger" style="text-align: right; font-weight: 700; font-size: 0.8rem; padding: 0;" value="{{ $savedSummary['dbt_crd'] ?? '' }}" placeholder="0" readonly>
                             </td>
                         </tr>
                         <tr>
@@ -720,7 +710,7 @@
                         <tr style="background: #f4f4f5;">
                             <td class="summary-label" style="font-weight: 900; background: #e4e4e7;">Balnc</td>
                             <td class="summary-val-td" style="font-weight: 900;">
-                                <input type="number" step="any" id="sum_balnc_input" class="sheet-input calc-trigger" style="text-align: right; font-weight: 900; font-size: 0.85rem; padding: 0; color: #18181b;" value="{{ $savedSummary['balnc'] ?? '' }}" placeholder="0">
+                                <input type="number" step="any" id="sum_balnc_input" class="sheet-input calc-trigger" style="text-align: right; font-weight: 900; font-size: 0.85rem; padding: 0; color: #18181b;" value="{{ $savedSummary['balnc'] ?? '' }}" placeholder="0" readonly>
                             </td>
                         </tr>
                     </tbody>
@@ -963,35 +953,6 @@
         }
     }
 
-    function addOnlineRow() {
-        const tbody = document.getElementById('onlinePaymentRows');
-        if (!tbody) return;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td style="padding: 1px;">
-                <input type="number" step="any" class="sheet-input card-cell calc-trigger" style="font-size: 0.78rem; padding: 1px;" placeholder="0">
-            </td>
-            <td style="padding: 1px;">
-                <input type="number" step="any" class="sheet-input ep-cell calc-trigger" style="font-size: 0.78rem; padding: 1px;" placeholder="0">
-            </td>
-        `;
-        tbody.appendChild(tr);
-    }
-
-    function addCashRow() {
-        const tbody = document.getElementById('cashPaymentRows');
-        if (!tbody) return;
-        const rowNum = tbody.querySelectorAll('tr').length + 1;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td style="padding: 1px; text-align: center; font-size: 0.7rem; color: #71717a; width: 20px;">${rowNum}</td>
-            <td style="padding: 1px;">
-                <input type="number" step="any" class="sheet-input cash-cell calc-trigger" style="font-size: 0.78rem; padding: 1px;" placeholder="0">
-            </td>
-        `;
-        tbody.appendChild(tr);
-    }
-
     // Run initial calculation on page load
     document.addEventListener('DOMContentLoaded', function() {
         calculateAllSheetTotals();
@@ -1010,128 +971,6 @@
             calculateAllSheetTotals();
         }
     });
-
-    // Save Daily Report Ajax
-    function saveReport() {
-        const staffSalesData = {
-            fine: {},
-            time_ta: {},
-            comsn: {},
-            rows: {},
-            discounts: {}
-        };
-
-        document.querySelectorAll('.input-time-ta').forEach(inp => {
-            staffSalesData.time_ta[inp.dataset.staffId] = inp.value;
-        });
-        document.querySelectorAll('.input-fine').forEach(inp => {
-            staffSalesData.fine[inp.dataset.staffId] = inp.value;
-        });
-        document.querySelectorAll('.input-comsn').forEach(inp => {
-            staffSalesData.comsn[inp.dataset.staffId] = inp.value;
-        });
-
-        const totalRowsInTable = document.querySelectorAll('.sales-row').length || 20;
-        for (let r = 1; r <= totalRowsInTable; r++) {
-            staffSalesData.rows[r] = {};
-            document.querySelectorAll(`.sales-cell[data-row="${r}"]`).forEach(inp => {
-                staffSalesData.rows[r][inp.dataset.staffId] = inp.value;
-            });
-            // Discounts are read-only (from invoice data) — read from span if present
-            const salesRows = document.querySelectorAll('.sales-row');
-            if (salesRows[r - 1]) {
-                const discSpan = salesRows[r - 1].querySelector('td:last-child span');
-                if (discSpan) {
-                    staffSalesData.discounts[r] = discSpan.textContent.replace('-', '').trim();
-                }
-            }
-        }
-
-        const staffStatusData = {};
-        document.querySelectorAll('.staff-status-input').forEach(inp => {
-            staffStatusData[inp.dataset.staffId] = inp.value;
-        });
-
-        const epEntries = [];
-        document.querySelectorAll('.ep-cell').forEach(inp => {
-            if (inp.value) epEntries.push(inp.value);
-        });
-
-        const cardEntries = [];
-        document.querySelectorAll('.card-cell').forEach(inp => {
-            if (inp.value) cardEntries.push(inp.value);
-        });
-
-        const cashEntries = [];
-        document.querySelectorAll('.cash-cell').forEach(inp => {
-            if (inp.value) cashEntries.push(inp.value);
-        });
-
-        const summaryData = {
-            sale: parseAmountFromText(document.getElementById('sum_sale').textContent),
-            cos: parseAmountFromText(document.getElementById('sum_cos').textContent),
-            dis: parseAmountFromText(document.getElementById('sum_dis').textContent),
-            exp: parseAmountFromText(document.getElementById('sum_exp').textContent),
-            ol: parseAmountFromText(document.getElementById('sum_ol').textContent),
-            staff: parseAmountFromText(document.getElementById('sum_staff').textContent),
-            prs: parseAmountFromText(document.getElementById('sum_prs').textContent),
-            dbt_crd: document.getElementById('sum_dbt_crd_input').value,
-            other: parseAmountFromText(document.getElementById('sum_other').textContent),
-            pending: parseAmountFromText(document.getElementById('c3TotalDisplay').textContent),
-            savings: parseAmountFromText(document.getElementById('sum_savings')?.textContent || '0'),
-            balnc: document.getElementById('sum_balnc_input').value
-        };
-
-        const payload = {
-            _token: '{{ csrf_token() }}',
-            report_date: '{{ $dateStr }}',
-            other_expenditures: document.getElementById('otherExpendituresText').value,
-            dbt_crd: document.getElementById('dbtCrdText').value,
-            expenditures_amount: document.getElementById('expendituresAmount').value,
-            cosmetics_notes: document.getElementById('cosmeticsNotes').value,
-            cosmetics_total: parseAmountFromText(document.getElementById('cosTotalDisplay').textContent),
-            staff_notes: document.getElementById('staffNotes').value,
-            staff_total_monetary: parseAmountFromText(document.getElementById('staffMonetaryTotalDisplay').textContent),
-            easypaisa_entries: epEntries,
-            easypaisa_total: parseAmountFromText(document.getElementById('epTotalDisplay').textContent),
-            card_hbl_entries: cardEntries,
-            card_hbl_total: parseAmountFromText(document.getElementById('cardTotalDisplay').textContent),
-            cash_entries: cashEntries,
-            cash_total: parseAmountFromText(document.getElementById('cashTotalDisplay')?.textContent || '0'),
-            ol_paid_entries: document.getElementById('olPaidNotes').value.split('\n').filter(Boolean),
-            ol_paid_total: parseAmountFromText(document.getElementById('olTotalDisplay').textContent),
-            paid_from_c3_entries: document.getElementById('paidFromC3Notes').value.split('\n').filter(Boolean),
-            paid_from_c3_total: parseAmountFromText(document.getElementById('c3TotalDisplay').textContent),
-            personal_exp_total: parseAmountFromText(document.getElementById('personalTotalDisplay').textContent),
-            mzn_bank_amount: parseFloat(document.getElementById('mznBankAmount').value) || 0,
-            staff_sales_data: staffSalesData,
-            staff_status_data: staffStatusData,
-            summary_data: summaryData
-        };
-
-        fetch('{{ route("reports.daily.save") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify(payload)
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const statusEl = document.getElementById('saveStatus');
-                statusEl.style.display = 'inline';
-                setTimeout(() => { statusEl.style.display = 'none'; }, 3000);
-            } else {
-                alert('Error saving report');
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            alert('Server error while saving report.');
-        });
-    }
 
     // Initial calculation on page load is handled above in DOMContentLoaded at line 843
 </script>

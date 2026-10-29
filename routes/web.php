@@ -279,7 +279,6 @@ Route::middleware(['auth'])->group(function () {
         // Daily Paper Report
         Route::get('/reports/daily', [ReportController::class, 'dailyReport'])->name('reports.daily');
         Route::get('/reports/daily-history', [ReportController::class, 'dailyReportHistory'])->name('reports.daily-history');
-        Route::post('/reports/daily', [ReportController::class, 'saveDailyReport'])->name('reports.daily.save');
     });
 
     Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');
