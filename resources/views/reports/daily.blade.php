@@ -290,6 +290,12 @@
         </div>
         <div style="font-size: 0.72rem; color: #d1fae5; margin-top: 2px;">(Total Revenue − Total Expenses)</div>
     </div>
+
+    <div style="background:#fff; border:1.5px solid #bbf7d0; border-radius:16px; padding:18px 22px; box-shadow:0 4px 15px rgba(22,163,74,0.05);">
+        <div style="font-size:0.75rem; font-weight:700; color:#166534; text-transform:uppercase; letter-spacing:0.05em;">Extra Amount / Tips</div>
+        <div style="font-size:1.5rem; font-weight:900; color:#15803d; margin-top:4px;">PKR {{ number_format($dailyExtraAmountTotal, 2) }}</div>
+        <div style="font-size:0.72rem; color:#166534; margin-top:2px;">Included in sales and payment totals</div>
+    </div>
 </div>
 
 {{-- Outer Card --}}
@@ -540,6 +546,20 @@
                         @php
                             $cardEntries = !empty($report?->card_hbl_entries) ? $report?->card_hbl_entries : ($autoOnlinePayments['card'] ?? []);
                             $bankEntries = !empty($report?->easypaisa_entries) ? $report?->easypaisa_entries : ($autoOnlinePayments['bank'] ?? []);
+                            if ($isGreenAvenue) {
+                                $flattenEntries = static function ($entries) {
+                                    $flat = [];
+                                    $entriesArray = (array) $entries;
+                                    array_walk_recursive($entriesArray, static function ($entry) use (&$flat) {
+                                        if (is_scalar($entry) && $entry !== '') {
+                                            $flat[] = $entry;
+                                        }
+                                    });
+                                    return $flat;
+                                };
+                                $cardEntries = $flattenEntries($cardEntries);
+                                $bankEntries = $flattenEntries($bankEntries);
+                            }
                             $maxRows = max(10, count($cardEntries), count($bankEntries));
                         @endphp
                         @for($i = 0; $i < $maxRows; $i++)
@@ -572,6 +592,15 @@
                 @php
                     $savedCashEntries = $report?->cash_entries ?? null;
                     $cashRows = !empty($savedCashEntries) ? $savedCashEntries : (!empty($autoCashEntries) ? $autoCashEntries : []);
+                    if ($isGreenAvenue) {
+                        $cashRowsArray = (array) $cashRows;
+                        $cashRows = [];
+                        array_walk_recursive($cashRowsArray, static function ($entry) use (&$cashRows) {
+                            if (is_scalar($entry) && $entry !== '') {
+                                $cashRows[] = $entry;
+                            }
+                        });
+                    }
                     $cashMaxRows = max(8, count($cashRows));
                 @endphp
 
@@ -604,7 +633,22 @@
                 <div style="font-weight: 800; font-size: 0.78rem; background: #f4f4f5; padding: 4px; text-align: center; border-bottom: 1px solid #27272a; margin-bottom: 6px;">
                     (O/L Paid)
                 </div>
-                <textarea id="olPaidNotes" class="sheet-textarea calc-trigger" rows="4" placeholder="Amount / notes..." readonly>{{ is_array($report?->ol_paid_entries ?? null) ? implode("\n", $report?->ol_paid_entries) : ($report?->ol_paid_entries ?? '') }}</textarea>
+                @php
+                    $olPaidEntries = $report?->ol_paid_entries;
+                    if ($isGreenAvenue && is_array($olPaidEntries)) {
+                        $olPaidLines = [];
+                        $olPaidEntriesArray = $olPaidEntries;
+                        array_walk_recursive($olPaidEntriesArray, static function ($entry) use (&$olPaidLines) {
+                            if (is_scalar($entry) && $entry !== '') {
+                                $olPaidLines[] = (string) $entry;
+                            }
+                        });
+                        $olPaidEntries = implode("\n", $olPaidLines);
+                    } elseif (is_array($olPaidEntries)) {
+                        $olPaidEntries = implode("\n", array_filter($olPaidEntries, 'is_scalar'));
+                    }
+                @endphp
+                <textarea id="olPaidNotes" class="sheet-textarea calc-trigger" rows="4" placeholder="Amount / notes..." readonly>{{ $olPaidEntries ?? '' }}</textarea>
                 <div style="margin-top: 4px; font-weight: 800; font-size: 0.8rem; background: #fafafa; padding: 4px; border-top: 1px solid #e4e4e7; display: flex; justify-content: space-between;">
                     <span>Total O/L:</span>
                     <span id="olTotalDisplay">0</span>
@@ -617,9 +661,19 @@
                     Pending Payments
                 </div>
                 @php
-                    $pendingVal = is_array($report?->paid_from_c3_entries ?? null)
-                        ? implode("\n", $report?->paid_from_c3_entries)
-                        : ($report?->paid_from_c3_entries ?? (!empty($autoPendingPayments) ? implode("\n", $autoPendingPayments) : ''));
+                    $pendingEntries = $report?->paid_from_c3_entries;
+                    if (is_array($pendingEntries)) {
+                        $pendingLines = [];
+                        $pendingEntriesArray = $pendingEntries;
+                        array_walk_recursive($pendingEntriesArray, static function ($entry) use (&$pendingLines) {
+                            if (is_scalar($entry) && $entry !== '') {
+                                $pendingLines[] = (string) $entry;
+                            }
+                        });
+                        $pendingVal = implode("\n", $pendingLines);
+                    } else {
+                        $pendingVal = $pendingEntries ?? (!empty($autoPendingPayments) ? implode("\n", $autoPendingPayments) : '');
+                    }
                 @endphp
                 <textarea id="paidFromC3Notes" class="sheet-textarea calc-trigger" rows="4" placeholder="Pending payment notes & amounts (e.g. 15,000 Online Transfer Pending, 5,000 Card Pending, 3,200 Bank Transfer Pending)..." readonly>{{ $pendingVal }}</textarea>
                 <div style="margin-top: 4px; font-weight: 800; font-size: 0.8rem; background: #fafafa; padding: 4px; border-top: 1px solid #e4e4e7; display: flex; justify-content: space-between;">
@@ -915,7 +969,6 @@
         const otherExpTotal = parseAmountFromText(document.getElementById('otherExpendituresText').value);
 
         // 7. Update Summary Table
-        document.getElementById('sum_sale').textContent = grandSaleTotal.toLocaleString();
         document.getElementById('sum_cos').textContent = cosmeticsTotal.toLocaleString();
         document.getElementById('sum_dis').textContent = totalDiscount.toLocaleString();
         document.getElementById('sum_exp').textContent = totalExp.toLocaleString();
@@ -926,7 +979,9 @@
 
         // Savings = Sale - (Exp + O/L + Staff + FixExp + Other)
         const totalAllExp = totalExp + olTotal + staffMonetaryTotal + personalTotal + otherExpTotal;
-        const netDailySavings = grandSaleTotal - totalAllExp;
+        const reportRevenue = grandSaleTotal + {{ $dailyExtraAmountTotal ?? 0 }};
+        document.getElementById('sum_sale').textContent = reportRevenue.toLocaleString();
+        const netDailySavings = reportRevenue - totalAllExp;
 
         const prevSavings = {{ $previousSavingsCarryforward ?? 0 }};
         const totalCumSavings = prevSavings + netDailySavings;
@@ -937,7 +992,7 @@
         if (sumSavingsEl) sumSavingsEl.textContent = netDailySavings.toLocaleString();
 
         const incDispEl = document.getElementById('savings_income_display');
-        if (incDispEl) incDispEl.textContent = grandSaleTotal.toLocaleString();
+        if (incDispEl) incDispEl.textContent = reportRevenue.toLocaleString();
 
         const netDispEl = document.getElementById('savings_net_display');
         if (netDispEl) netDispEl.textContent = netDailySavings.toLocaleString();
@@ -945,7 +1000,7 @@
         // Suggested balance = Cash in drawer
         const balncInput = document.getElementById('sum_balnc_input');
         if (!balncInput.value || balncInput.dataset.autoCalculated === 'true') {
-            const suggestedBal = grandSaleTotal - (onlineTotal + totalExp + olTotal + staffMonetaryTotal + personalTotal + otherExpTotal);
+            const suggestedBal = reportRevenue - (onlineTotal + totalExp + olTotal + staffMonetaryTotal + personalTotal + otherExpTotal);
             if (!balncInput.value) {
                 balncInput.value = suggestedBal;
                 balncInput.dataset.autoCalculated = 'true';

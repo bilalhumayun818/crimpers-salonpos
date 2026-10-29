@@ -45,27 +45,44 @@ class ReconciliationController extends Controller
             ->whereDate('created_at', $businessDate)
             ->get();
 
-        $grossSales = (float) $invoices->sum('payable_amount');
+        $grossSales = (float) $invoices->sum(fn ($invoice) => (float) $invoice->payable_amount + (float) ($invoice->extra_amount ?? 0));
 
         // Card Payments
-        $cardSales = (float) $invoices->where('payment_method', 'card')->sum('payable_amount');
+        $cardSales = (float) $invoices->where('payment_method', 'card')->sum(fn ($invoice) => $invoice->cash_received !== null
+            ? (float) $invoice->cash_received
+            : (float) $invoice->payable_amount + (float) ($invoice->extra_amount ?? 0));
 
         // Bank / Online / QR / EasyPaisa / JazzCash Payments
-        $bankSales = (float) $invoices->whereIn('payment_method', ['bank', 'jazzcash', 'easypaisa', 'hbl', 'qr', 'online'])->sum('payable_amount');
+        $bankInvoices = $invoices->whereIn('payment_method', ['bank', 'jazzcash', 'easypaisa', 'hbl', 'qr', 'online']);
+        $bankSales = (float) $bankInvoices->sum(fn ($invoice) => $invoice->cash_received !== null
+            ? (float) $invoice->cash_received
+            : (float) $invoice->payable_amount + (float) ($invoice->extra_amount ?? 0));
 
         // Split payments bank portion
-        $splitBankSales = (float) $invoices->where('payment_method', 'split')->sum('split_bank');
+        $splitInvoices = $invoices->where('payment_method', 'split');
+        $splitBankSales = (float) $splitInvoices->sum(fn ($invoice) => (float) $invoice->split_bank + (float) ($invoice->extra_bank_amount ?? 0));
+        $splitCardSales = (float) $splitInvoices->sum(fn ($invoice) => (float) ($invoice->split_card ?? 0) + (float) ($invoice->extra_card_amount ?? 0));
 
         // Total non-cash payments (Not in physical drawer)
-        $nonCashSales = $cardSales + $bankSales + $splitBankSales;
+        $nonCashSales = $cardSales + $bankSales + $splitBankSales + $splitCardSales;
 
         // Cash Sales (Actual physical cash received in drawer)
-        $cashSales = (float) $invoices->where('payment_method', 'cash')->sum('payable_amount');
-        if ($invoices->where('payment_method', 'split')->count() > 0) {
-            foreach ($invoices->where('payment_method', 'split') as $splitInv) {
-                $cashSales += max(0, (float)$splitInv->payable_amount - (float)$splitInv->split_bank);
-            }
+        $cashSales = (float) $invoices->where('payment_method', 'cash')->sum(function ($invoice) {
+            return $invoice->cash_received !== null
+                ? max(0, (float) $invoice->cash_received - (float) ($invoice->change_returned ?? 0))
+                : (float) $invoice->payable_amount;
+        });
+        foreach ($splitInvoices as $splitInv) {
+            $splitCash = $splitInv->split_cash !== null
+                ? (float) $splitInv->split_cash
+                : max(0, (float) $splitInv->payable_amount - (float) $splitInv->split_bank - (float) ($splitInv->split_card ?? 0) - (float) ($splitInv->pending_amount ?? 0));
+            $cashSales += $splitCash - (float) ($splitInv->change_returned ?? 0)
+                + (float) ($splitInv->extra_cash_amount ?? 0);
         }
+        // When a non-cash payment exceeds the bill, the difference is returned
+        // from the physical drawer and must reduce its expected balance.
+        $cashSales -= (float) $invoices->whereIn('payment_method', ['card', 'bank', 'jazzcash', 'easypaisa', 'hbl', 'qr', 'online'])
+            ->sum(fn ($invoice) => (float) ($invoice->change_returned ?? 0));
 
         // Drawer Expenses
         $totalExpenses = (float) Expense::where(function($q) use ($branchId) {
@@ -86,6 +103,7 @@ class ReconciliationController extends Controller
             'businessDate',
             'grossSales',
             'cardSales',
+            'splitCardSales',
             'bankSales',
             'splitBankSales',
             'nonCashSales',

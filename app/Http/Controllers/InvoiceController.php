@@ -158,7 +158,7 @@ class InvoiceController extends Controller
         }
 
         // Calculate summary statistics for filtered results BEFORE paginate()
-        $totalSales = (clone $query)->sum('payable_amount');
+        $totalSales = (float) (clone $query)->selectRaw('COALESCE(SUM(payable_amount + extra_amount), 0) as total')->value('total');
         $totalInvoices = (clone $query)->count();
 
         $invoices = $query->latest()->paginate(20)->withQueryString();

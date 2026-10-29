@@ -26,16 +26,16 @@ class AdminController extends Controller
         Appointment::autoCancelLate();
         \App\Models\StaffAttendance::autoCheckout();
         
-        $totalSalesToday = Invoice::whereDate('created_at', Carbon::today())->sum('payable_amount');
+        $totalSalesToday = (float) Invoice::whereDate('created_at', Carbon::today())->selectRaw('COALESCE(SUM(payable_amount + extra_amount), 0) as total')->value('total');
         $totalAppointmentsToday = Appointment::where('appointment_date', $today)->count();
         $completedAppointmentsToday = Appointment::where('appointment_date', $today)->where('status', 'completed')->count();
 
         $weekStart = Carbon::now()->startOfWeek();
         $weekEnd = Carbon::now()->endOfWeek();
-        $totalSalesWeek = Invoice::whereBetween('created_at', [$weekStart, $weekEnd])->sum('payable_amount');
+        $totalSalesWeek = (float) Invoice::whereBetween('created_at', [$weekStart, $weekEnd])->selectRaw('COALESCE(SUM(payable_amount + extra_amount), 0) as total')->value('total');
         $totalAppointmentsWeek = Appointment::whereBetween('appointment_date', [$weekStart, $weekEnd])->count();
 
-        $totalRevenue      = Invoice::sum('payable_amount');
+        $totalRevenue      = (float) Invoice::query()->selectRaw('COALESCE(SUM(payable_amount + extra_amount), 0) as total')->value('total');
         $totalAppointments = Appointment::count();
         $totalCustomers    = Customer::count();
         $totalUsers        = User::count();
@@ -113,7 +113,7 @@ class AdminController extends Controller
             $date = Carbon::today()->subDays($i);
             $dailySales[] = [
                 'label' => $date->format('D'),
-                'value' => (float) Invoice::whereDate('created_at', $date)->sum('payable_amount')
+                'value' => (float) Invoice::whereDate('created_at', $date)->selectRaw('COALESCE(SUM(payable_amount + extra_amount), 0) as total')->value('total')
             ];
         }
 
@@ -124,7 +124,7 @@ class AdminController extends Controller
             $end = Carbon::now()->subWeeks($i)->endOfWeek();
             $weeklySales[] = [
                 'label' => 'Week ' . ($i == 0 ? ' (Current)' : '-' . $i),
-                'value' => (float) Invoice::whereBetween('created_at', [$start, $end])->sum('payable_amount')
+                'value' => (float) Invoice::whereBetween('created_at', [$start, $end])->selectRaw('COALESCE(SUM(payable_amount + extra_amount), 0) as total')->value('total')
             ];
         }
 
@@ -135,7 +135,7 @@ class AdminController extends Controller
                 'label' => Carbon::create()->month($i)->format('M'),
                 'value' => (float) Invoice::whereYear('created_at', Carbon::now()->year)
                                     ->whereMonth('created_at', $i)
-                                    ->sum('payable_amount')
+                                    ->selectRaw('COALESCE(SUM(payable_amount + extra_amount), 0) as total')->value('total')
             ];
         }
 
@@ -185,7 +185,7 @@ class AdminController extends Controller
                 $date = Carbon::today()->subDays($i);
                 $labels[] = $date->format('D (M d)');
                 
-                $sales = (float) (clone $salesQuery)->whereDate('created_at', $date)->sum('payable_amount');
+                $sales = (float) (clone $salesQuery)->whereDate('created_at', $date)->selectRaw('COALESCE(SUM(payable_amount + extra_amount), 0) as total')->value('total');
                 $expenses = (float) (clone $expenseQuery)->whereDate('created_at', $date)->sum('amount');
                 
                 $salesData[] = $sales;
@@ -199,7 +199,7 @@ class AdminController extends Controller
                 $end = Carbon::now()->subWeeks($i)->endOfWeek();
                 $labels[] = 'Week ' . ($i == 0 ? '(Current)' : '-' . $i);
 
-                $sales = (float) (clone $salesQuery)->whereBetween('created_at', [$start, $end])->sum('payable_amount');
+                $sales = (float) (clone $salesQuery)->whereBetween('created_at', [$start, $end])->selectRaw('COALESCE(SUM(payable_amount + extra_amount), 0) as total')->value('total');
                 $expenses = (float) (clone $expenseQuery)->whereBetween('created_at', [$start, $end])->sum('amount');
 
                 $salesData[] = $sales;
@@ -211,7 +211,7 @@ class AdminController extends Controller
             for ($i = 1; $i <= 12; $i++) {
                 $labels[] = Carbon::create()->month($i)->format('M');
 
-                $sales = (float) (clone $salesQuery)->whereYear('created_at', Carbon::now()->year)->whereMonth('created_at', $i)->sum('payable_amount');
+                $sales = (float) (clone $salesQuery)->whereYear('created_at', Carbon::now()->year)->whereMonth('created_at', $i)->selectRaw('COALESCE(SUM(payable_amount + extra_amount), 0) as total')->value('total');
                 $expenses = (float) (clone $expenseQuery)->whereYear('created_at', Carbon::now()->year)->whereMonth('created_at', $i)->sum('amount');
 
                 $salesData[] = $sales;
@@ -227,7 +227,7 @@ class AdminController extends Controller
             
             // Fast aggregate query: Fetch all records in one single query!
             $allSales = (clone $salesQuery)->whereBetween('created_at', [$start, $end])
-                ->selectRaw('DATE(created_at) as date, SUM(payable_amount) as total')
+                ->selectRaw('DATE(created_at) as date, SUM(payable_amount + extra_amount) as total')
                 ->groupBy('date')
                 ->pluck('total', 'date');
 

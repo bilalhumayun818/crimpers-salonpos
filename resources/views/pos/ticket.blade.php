@@ -54,6 +54,9 @@
     <div class="divider"></div>
 
     <div class="row total"><span>TOTAL</span><span>PKR {{ number_format($invoice->payable_amount, 2) }}</span></div>
+    @if((float) ($invoice->extra_amount ?? 0) > 0)
+    <div class="row"><span>Extra Amount / Tip</span><span>PKR {{ number_format($invoice->extra_amount, 2) }}</span></div>
+    @endif
 
     <div class="divider"></div>
 

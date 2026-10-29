@@ -263,7 +263,7 @@
                     <span style="margin-left:12px; color:#94a3b8; font-size:0.8rem;">({{ $dailyInvoices->count() }} Invoices)</span>
                 </div>
                 <div style="display:flex; align-items:center; gap:20px;">
-                    <span class="date-summary">PKR {{ number_format($dailyInvoices->sum('payable_amount'), 2) }}</span>
+                    <span class="date-summary">PKR {{ number_format($dailyInvoices->sum(fn ($invoice) => (float) $invoice->payable_amount + (float) ($invoice->extra_amount ?? 0)), 2) }}</span>
                     <div class="drop-arrow">
                         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
                     </div>
@@ -289,7 +289,7 @@
                         @foreach($dailyInvoices as $invoice)
                         @php 
                             $totalCost = $invoice->totalCost(); 
-                            $profit = $invoice->payable_amount - $totalCost;
+                            $profit = $invoice->payable_amount + (float) ($invoice->extra_amount ?? 0) - $totalCost;
                         @endphp
                         <tr>
                             <td><span class="inv-no">{{ $invoice->invoice_no }}</span></td>
@@ -311,7 +311,9 @@
                                     {{ $invoice->staff_names ?? ($invoice->staff?->name ?? '-') }}
                                 </div>
                             </td>
-                            <td style="font-weight:800;color:#c9a800;">PKR {{ number_format($invoice->payable_amount, 2) }}</td>
+                            <td style="font-weight:800;color:#c9a800;">PKR {{ number_format($invoice->payable_amount, 2) }}
+                                @if((float) ($invoice->extra_amount ?? 0) > 0)<div style="font-size:.7rem;color:#15803d;font-weight:700;">+ PKR {{ number_format($invoice->extra_amount, 2) }} extra</div>@endif
+                            </td>
                             <td style="font-weight:600;color:#64748b;">PKR {{ number_format($totalCost, 2) }}</td>
                             <td style="font-weight:800;color:{{ $profit >= 0 ? '#10b981' : '#ef4444' }};">PKR {{ number_format($profit, 2) }}</td>
                             <td>

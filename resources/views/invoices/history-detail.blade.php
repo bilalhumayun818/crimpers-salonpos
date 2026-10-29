@@ -268,6 +268,19 @@
                             <span class="h-total-val">PKR {{ number_format($invoice->payable_amount, 2) }}</span>
                         </div>
 
+                        @if((float) ($invoice->extra_amount ?? 0) > 0)
+                            <div class="h-sum-row"><span>Extra Amount / Tip</span><b style="color:#15803d;">+ PKR {{ number_format($invoice->extra_amount, 2) }}</b></div>
+                            @if((float) ($invoice->extra_cash_amount ?? 0) > 0)
+                                <div class="h-sum-row"><span>Tip Paid in Cash</span><b>PKR {{ number_format($invoice->extra_cash_amount, 2) }}</b></div>
+                            @endif
+                            @if((float) ($invoice->extra_card_amount ?? 0) > 0)
+                                <div class="h-sum-row"><span>Tip Paid by Card</span><b>PKR {{ number_format($invoice->extra_card_amount, 2) }}</b></div>
+                            @endif
+                            @if((float) ($invoice->extra_bank_amount ?? 0) > 0)
+                                <div class="h-sum-row"><span>Tip Paid by Bank</span><b>PKR {{ number_format($invoice->extra_bank_amount, 2) }}</b></div>
+                            @endif
+                        @endif
+
                         @if($invoice->cash_received !== null)
                             <div
                                 style="margin-top: 10px; border-top: 1px dashed #e2e8f0; padding-top: 10px; display: flex; flex-direction: column; gap: 6px;">
@@ -275,6 +288,14 @@
                                         {{ number_format($invoice->cash_received, 2) }}</b></div>
                                 <div class="h-sum-row"><span>Change Returned</span><b>PKR
                                         {{ number_format($invoice->change_returned ?? 0, 2) }}</b></div>
+                                @if((float) ($invoice->change_returned ?? 0) > 0)
+                                    <div class="h-sum-row"><span>Cash Returned from Drawer</span><b>PKR
+                                            {{ number_format($invoice->change_returned, 2) }}</b></div>
+                                @endif
+                                @if((float) ($invoice->extra_cash_amount ?? 0) > 0 && in_array($invoice->payment_method, ['cash', 'split'], true))
+                                    <div class="h-sum-row"><span>Net Cash Added to Drawer</span><b>PKR
+                                            {{ number_format((float) ($invoice->payment_method === 'split' ? $invoice->split_cash : $invoice->cash_received) + (float) $invoice->extra_cash_amount - (float) ($invoice->change_returned ?? 0), 2) }}</b></div>
+                                @endif
                             </div>
                         @endif
                     </div>

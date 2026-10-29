@@ -19,6 +19,7 @@ use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\Staff;
 use App\Models\InvoiceStaffCommission;
+use App\Models\Branch;
 
 class POSController extends Controller
 {
@@ -38,7 +39,11 @@ class POSController extends Controller
         $staff = Staff::available()->get()->filter(function ($s) {
             return $s->is_on_shift;
         });
-        return view('pos.payment', compact('staff'));
+        $branchId = session('current_branch_id', auth()->user()->branch_id ?? 1);
+        $currentBranch = Branch::find($branchId);
+        $supportsExtraAmount = $currentBranch && str_starts_with(strtolower(trim((string) $currentBranch->name)), 'green avenue');
+
+        return view('pos.payment', compact('staff', 'supportsExtraAmount'));
     }
 
     public function store(Request $request)
@@ -57,6 +62,11 @@ class POSController extends Controller
             'is_credit_bill'           => 'nullable|boolean',
             'bank_name'                => 'nullable|string',
             'split_bank'               => 'nullable|numeric',
+            'split_card'               => 'nullable|numeric|min:0',
+            'extra_amount'             => 'nullable|numeric|min:0',
+            'extra_cash_amount'        => 'nullable|numeric|min:0',
+            'extra_card_amount'        => 'nullable|numeric|min:0',
+            'extra_bank_amount'        => 'nullable|numeric|min:0',
         ]);
 
         if ($request->is_credit_bill) {
@@ -66,6 +76,47 @@ class POSController extends Controller
         }
 
         return DB::transaction(function () use ($request) {
+            $branchId = session('current_branch_id', auth()->user()->branch_id ?? 1);
+            $currentBranch = Branch::find($branchId);
+            $supportsExtraAmount = $currentBranch && str_starts_with(strtolower(trim((string) $currentBranch->name)), 'green avenue');
+            $extraAmount = $supportsExtraAmount ? (float) $request->input('extra_amount', 0) : 0;
+            $extraCashAmount = $supportsExtraAmount ? (float) $request->input('extra_cash_amount', 0) : 0;
+            $extraCardAmount = $supportsExtraAmount ? (float) $request->input('extra_card_amount', 0) : 0;
+            $extraBankAmount = $supportsExtraAmount ? (float) $request->input('extra_bank_amount', 0) : 0;
+            if (!$request->boolean('is_credit_bill') && $supportsExtraAmount) {
+                if ($request->payment_method === 'cash') {
+                    $extraCashAmount = $extraAmount;
+                    $extraCardAmount = $extraBankAmount = 0;
+                } elseif ($request->payment_method === 'card') {
+                    $extraCardAmount = $extraAmount;
+                    $extraCashAmount = $extraBankAmount = 0;
+                } elseif ($request->payment_method === 'bank') {
+                    $extraBankAmount = $extraAmount;
+                    $extraCashAmount = $extraCardAmount = 0;
+                } elseif ($request->payment_method !== 'split') {
+                    $extraAmount = $extraCashAmount = $extraCardAmount = $extraBankAmount = 0;
+                }
+            }
+            if ($request->boolean('is_credit_bill')) {
+                $extraAmount = $extraCashAmount = $extraCardAmount = $extraBankAmount = 0;
+            }
+            if ($supportsExtraAmount && $request->payment_method === 'split'
+                && abs(($extraCashAmount + $extraCardAmount + $extraBankAmount) - $extraAmount) > 0.01) {
+                return response()->json(['success' => false, 'message' => 'Extra cash, card, and bank amounts must equal the extra amount.'], 422);
+            }
+            $changeReturned = 0;
+            if (!$request->boolean('is_credit_bill')) {
+                if ($request->payment_method === 'cash') {
+                    $changeReturned = max(0, (float) $request->input('cash_received', 0) - (float) $request->payable_amount - $extraAmount);
+                } elseif (in_array($request->payment_method, ['card', 'bank'], true)) {
+                    $changeReturned = max(0, (float) $request->input('cash_received', 0) - (float) $request->payable_amount - $extraAmount);
+                } elseif ($request->payment_method === 'split') {
+                    $splitTendered = (float) $request->input('split_cash', 0)
+                        + (float) $request->input('split_card', 0)
+                        + (float) $request->input('split_bank', 0);
+                    $changeReturned = max(0, $splitTendered - (float) $request->payable_amount);
+                }
+            }
             $customerId = $request->customer_id;
 
             // Auto-lookup/create customer based on phone (Unique identifier)
@@ -121,10 +172,16 @@ class POSController extends Controller
                 'payable_amount' => $request->payable_amount,
                 'payment_method' => $request->payment_method,
                 'cash_received' => $request->cash_received,
-                'change_returned' => $request->change_returned,
+                'change_returned' => $changeReturned,
                 'bank_name' => $request->bank_name,
                 'pending_amount' => $pendingAmount,
                 'split_bank' => $request->split_bank ?? 0,
+                'split_cash' => $request->split_cash ?? 0,
+                'split_card' => $request->split_card ?? 0,
+                'extra_amount' => $extraAmount,
+                'extra_cash_amount' => $extraCashAmount,
+                'extra_card_amount' => $extraCardAmount,
+                'extra_bank_amount' => $extraBankAmount,
                 'status' => $status,
                 'staff_id' => !empty($request->staff_allocations) ? $request->staff_allocations[0]['id'] : null,
                 'staff_names' => empty($staffNames) ? null : $staffNames,

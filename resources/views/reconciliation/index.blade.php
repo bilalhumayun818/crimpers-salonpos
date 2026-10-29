@@ -210,13 +210,13 @@
                 <div class="fig-val" style="color: #2563eb;">PKR {{ number_format($grossSales, 2) }}</div>
             </div>
 
-            @if($cardSales > 0)
+            @if(($cardSales + $splitCardSales) > 0)
             <div class="fig-row">
                 <div class="fig-label">
-                    <span class="fig-dot" style="background:#dc2626;"></span>Card Sales
+                    <span class="fig-dot" style="background:#dc2626;"></span>Card Sales (including split card)
                     <span class="minus-badge">Not in Drawer</span>
                 </div>
-                <div class="fig-val" style="color:#dc2626;">- PKR {{ number_format($cardSales, 2) }}</div>
+                <div class="fig-val" style="color:#dc2626;">- PKR {{ number_format($cardSales + $splitCardSales, 2) }}</div>
             </div>
             @endif
 

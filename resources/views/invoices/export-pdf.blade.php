@@ -98,11 +98,11 @@
                 <div class="label">Total Invoices</div>
             </div>
             <div class="summary-item">
-                <div class="value">PKR {{ number_format($invoices->sum('payable_amount'), 2) }}</div>
+                <div class="value">PKR {{ number_format($invoices->sum(fn ($invoice) => (float) $invoice->payable_amount + (float) ($invoice->extra_amount ?? 0)), 2) }}</div>
                 <div class="label">Total Sales</div>
             </div>
             <div class="summary-item">
-                <div class="value">PKR {{ $invoices->count() > 0 ? number_format($invoices->sum('payable_amount') / $invoices->count(), 2) : '0.00' }}</div>
+                <div class="value">PKR {{ $invoices->count() > 0 ? number_format($invoices->sum(fn ($invoice) => (float) $invoice->payable_amount + (float) ($invoice->extra_amount ?? 0)) / $invoices->count(), 2) : '0.00' }}</div>
                 <div class="label">Average Sale</div>
             </div>
         </div>
@@ -126,7 +126,9 @@
                 <td>{{ $invoice->invoice_no }}</td>
                 <td>{{ $invoice->created_at->format('M d, Y H:i') }}</td>
                 <td>{{ $invoice->customer ? $invoice->customer->name : ($invoice->user->name ?? 'Walk-in') }}</td>
-                <td>PKR {{ number_format($invoice->payable_amount, 2) }}</td>
+                <td>PKR {{ number_format($invoice->payable_amount + (float) ($invoice->extra_amount ?? 0), 2) }}
+                    @if((float) ($invoice->extra_amount ?? 0) > 0)<small>(includes PKR {{ number_format($invoice->extra_amount, 2) }} extra)</small>@endif
+                </td>
                 <td>{{ ucfirst($invoice->payment_method) }}</td>
                 <td>{{ ucfirst($invoice->status) }}</td>
                 <td>{{ $invoice->items->count() }} items</td>
@@ -134,7 +136,7 @@
             @endforeach
             <tr class="total-row">
                 <td colspan="3" style="text-align: right; font-weight: bold;">TOTAL:</td>
-                <td style="font-weight: bold;">PKR {{ number_format($invoices->sum('payable_amount'), 2) }}</td>
+                <td style="font-weight: bold;">PKR {{ number_format($invoices->sum(fn ($invoice) => (float) $invoice->payable_amount + (float) ($invoice->extra_amount ?? 0)), 2) }}</td>
                 <td colspan="3"></td>
             </tr>
         </tbody>

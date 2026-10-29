@@ -206,7 +206,7 @@
         <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #1e293b;">POS Transactions</h3>
         <div style="display: flex; gap: 10px;">
             @foreach($paymentMethods as $method => $amount)
-                @if($amount > 0)
+                @if($amount != 0)
                     <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; color: #475569;">
                         {{ ucfirst($method) }}: Rs {{ number_format($amount) }}
                     </div>
@@ -241,6 +241,12 @@
                     </td>
                     <td style="padding: 14px 20px; text-align: right; font-size: 0.9rem; font-weight: 700; color: #166534;">
                         Rs {{ number_format($invoice->payable_amount, 2) }}
+                        @if((float) ($invoice->extra_amount ?? 0) > 0)
+                            <div style="font-size:0.72rem;color:#15803d;font-weight:600;">+ Rs {{ number_format($invoice->extra_amount, 2) }} extra</div>
+                        @endif
+                        @if((float) ($invoice->change_returned ?? 0) > 0)
+                            <div style="font-size:0.72rem;color:#dc2626;font-weight:600;">- Rs {{ number_format($invoice->change_returned, 2) }} cash returned</div>
+                        @endif
                     </td>
                 </tr>
                 @empty

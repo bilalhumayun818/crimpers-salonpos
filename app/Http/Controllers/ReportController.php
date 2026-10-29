@@ -26,9 +26,9 @@ class ReportController extends Controller
         $yesterday = Carbon::yesterday();
         $last30Days = Carbon::today()->subDays(29)->startOfDay();
 
-        $totalSalesToday = Invoice::whereDate('created_at', $today)->sum('payable_amount');
+        $totalSalesToday = (float) Invoice::whereDate('created_at', $today)->selectRaw('COALESCE(SUM(payable_amount + extra_amount), 0) as total')->value('total');
         $transactionCountToday = Invoice::whereDate('created_at', $today)->count();
-        $yesterdaySales = Invoice::whereDate('created_at', $yesterday)->sum('payable_amount');
+        $yesterdaySales = (float) Invoice::whereDate('created_at', $yesterday)->selectRaw('COALESCE(SUM(payable_amount + extra_amount), 0) as total')->value('total');
         $salesTrend = $yesterdaySales > 0
             ? round((($totalSalesToday - $yesterdaySales) / $yesterdaySales) * 100, 1)
             : null;
@@ -61,7 +61,7 @@ class ReportController extends Controller
             ];
         })->filter(fn ($item) => $item['service'] !== null);
 
-        $busyHours = Invoice::selectRaw('HOUR(created_at) as hour, COUNT(*) as invoice_count, SUM(payable_amount) as revenue')
+        $busyHours = Invoice::selectRaw('HOUR(created_at) as hour, COUNT(*) as invoice_count, SUM(payable_amount + extra_amount) as revenue')
             ->groupBy('hour')
             ->orderByDesc('invoice_count')
             ->limit(6)
@@ -104,7 +104,7 @@ class ReportController extends Controller
             ->value('total_cost') ?? 0;
 
         $totalCost = $directProductCost + $serviceSupplyCost;
-        $totalRevenue = Invoice::sum('payable_amount');
+        $totalRevenue = (float) Invoice::query()->selectRaw('COALESCE(SUM(payable_amount + extra_amount), 0) as total')->value('total');
         $grossProfit = $totalRevenue - $totalCost;
         $profitMargin = $totalRevenue > 0
             ? round(($grossProfit / $totalRevenue) * 100, 1)
@@ -147,16 +147,24 @@ class ReportController extends Controller
             ->latest()
             ->get();
 
-        $totalSales = $invoices->sum('payable_amount');
+        $totalSales = $invoices->sum(fn ($invoice) => (float) $invoice->payable_amount + (float) ($invoice->extra_amount ?? 0));
         $totalTax = $invoices->sum('tax');
         $totalDiscount = $invoices->sum('discount');
         
         $paymentMethods = [
-            'cash' => $invoices->where('payment_method', 'cash')->sum('payable_amount'),
-            'card' => $invoices->where('payment_method', 'card')->sum('payable_amount'),
-            'jazzcash' => $invoices->where('payment_method', 'jazzcash')->sum('payable_amount'),
-            'easypaisa' => $invoices->where('payment_method', 'easypaisa')->sum('payable_amount'),
-            'multiple' => $invoices->where('payment_method', 'multiple')->sum('payable_amount'),
+            'cash' => (float) $invoices->where('payment_method', 'cash')->sum(fn ($invoice) => $invoice->cash_received !== null
+                ? max(0, (float) $invoice->cash_received - (float) ($invoice->change_returned ?? 0))
+                : (float) $invoice->payable_amount)
+                + (float) $invoices->where('payment_method', 'split')->sum(fn ($invoice) => (float) ($invoice->split_cash ?? 0) - (float) ($invoice->change_returned ?? 0) + (float) ($invoice->extra_cash_amount ?? 0))
+                - (float) $invoices->whereIn('payment_method', ['card', 'bank', 'jazzcash', 'easypaisa', 'hbl', 'qr', 'online'])->sum('change_returned'),
+            'card' => (float) $invoices->where('payment_method', 'card')->sum(fn ($invoice) => (float) ($invoice->cash_received ?? ((float) $invoice->payable_amount + (float) ($invoice->extra_amount ?? 0)))),
+            'bank' => (float) $invoices->whereIn('payment_method', ['bank', 'jazzcash', 'easypaisa', 'hbl', 'qr', 'online'])->sum(fn ($invoice) => (float) ($invoice->cash_received ?? ((float) $invoice->payable_amount + (float) ($invoice->extra_amount ?? 0)))),
+            'split cash' => (float) $invoices->where('payment_method', 'split')->sum(fn ($invoice) => (float) ($invoice->split_cash ?? ((float) $invoice->payable_amount - (float) $invoice->split_card - (float) $invoice->split_bank - (float) $invoice->pending_amount)) - (float) ($invoice->change_returned ?? 0) + (float) ($invoice->extra_cash_amount ?? 0)),
+            'split card' => (float) $invoices->where('payment_method', 'split')->sum(fn ($invoice) => (float) ($invoice->split_card ?? 0) + (float) ($invoice->extra_card_amount ?? 0)),
+            'split bank' => (float) $invoices->where('payment_method', 'split')->sum(fn ($invoice) => (float) $invoice->split_bank + (float) ($invoice->extra_bank_amount ?? 0)),
+            'jazzcash' => 0,
+            'easypaisa' => 0,
+            'multiple' => 0,
         ];
 
         return view('reports.pos', compact(
@@ -500,6 +508,7 @@ class ReportController extends Controller
     {
         $branchId = session('current_branch_id', auth()->user()->branch_id ?? 1);
         $branch = Branch::find($branchId) ?? Branch::first();
+        $isGreenAvenue = $branch && str_starts_with(strtolower(trim((string) $branch->name)), 'green avenue');
 
         $dateStr = $request->get('date', Carbon::today()->format('Y-m-d'));
         try {
@@ -551,6 +560,7 @@ class ReportController extends Controller
         $autoPendingPayments = [];
         $autoCashSales = 0;
         $autoCashEntries = []; // individual cash amounts for balance display
+        $dailyExtraAmountTotal = (float) $invoices->sum('extra_amount');
 
         $staffInvoices = [];
         $firstStaffId = $activeStaff->first()->id ?? null;
@@ -558,29 +568,46 @@ class ReportController extends Controller
         foreach ($invoices as $inv) {
             $pm = strtolower($inv->payment_method ?? '');
             if ($pm === 'card') {
-                $autoOnlinePayments['card'][] = (float) $inv->payable_amount;
+                $autoOnlinePayments['card'][] = (float) ($inv->cash_received ?? ((float) $inv->payable_amount + (float) ($inv->extra_card_amount ?? $inv->extra_amount ?? 0)));
+                if ((float) ($inv->change_returned ?? 0) > 0) {
+                    $autoCashSales -= (float) $inv->change_returned;
+                    $autoCashEntries[] = -(float) $inv->change_returned;
+                }
             } elseif ($pm === 'bank' || $pm === 'hbl' || $pm === 'easypaisa' || $pm === 'jazzcash' || !empty($inv->bank_name)) {
-                $autoOnlinePayments['bank'][] = (float) $inv->payable_amount;
+                $autoOnlinePayments['bank'][] = (float) ($inv->cash_received ?? ((float) $inv->payable_amount + (float) ($inv->extra_bank_amount ?? $inv->extra_amount ?? 0)));
+                if ((float) ($inv->change_returned ?? 0) > 0) {
+                    $autoCashSales -= (float) $inv->change_returned;
+                    $autoCashEntries[] = -(float) $inv->change_returned;
+                }
             } elseif ($pm === 'pending' || $pm === 'credit' || $pm === 'pay_later' || $pm === 'unpaid' || floatval($inv->pending_amount) > 0) {
                 $pendAmt = floatval($inv->pending_amount) > 0 ? (float)$inv->pending_amount : (float)$inv->payable_amount;
                 $custName = $inv->customer_name ?: ($inv->customer->name ?? 'Customer');
                 $autoPendingPayments[] = "Inv #{$inv->invoice_no} ({$custName}): " . number_format($pendAmt);
             } elseif ($pm === 'split') {
-                if (!empty($inv->split_bank) && floatval($inv->split_bank) > 0) {
-                    $autoOnlinePayments['bank'][] = (float) $inv->split_bank;
+                if (!empty($inv->split_card) || !empty($inv->extra_card_amount)) {
+                    $autoOnlinePayments['card'][] = (float) ($inv->split_card ?? 0) + (float) ($inv->extra_card_amount ?? 0);
+                }
+                if (floatval($inv->split_bank ?? 0) > 0 || floatval($inv->extra_bank_amount ?? 0) > 0) {
+                    $autoOnlinePayments['bank'][] = (float) $inv->split_bank + (float) ($inv->extra_bank_amount ?? 0);
                 }
                 if (!empty($inv->pending_amount) && floatval($inv->pending_amount) > 0) {
                     $custName = $inv->customer_name ?: ($inv->customer->name ?? 'Customer');
                     $autoPendingPayments[] = "Inv #{$inv->invoice_no} ({$custName} Pending): " . number_format($inv->pending_amount);
                 }
-                $splitCash = max(0, (float)$inv->payable_amount - (float)$inv->split_bank - (float)$inv->pending_amount);
-                if ($splitCash > 0) {
+                $splitCash = $inv->split_cash !== null
+                    ? (float) $inv->split_cash - (float) ($inv->change_returned ?? 0)
+                    : max(0, (float)$inv->payable_amount - (float)$inv->split_bank - (float)($inv->split_card ?? 0) - (float)$inv->pending_amount) - (float) ($inv->change_returned ?? 0);
+                $splitCash += (float) ($inv->extra_cash_amount ?? 0);
+                if ($splitCash != 0) {
                     $autoCashSales += $splitCash;
                     $autoCashEntries[] = $splitCash;
                 }
             } else {
-                $autoCashSales += (float) $inv->payable_amount;
-                $autoCashEntries[] = (float) $inv->payable_amount;
+                $cashCollected = $inv->cash_received !== null
+                    ? max(0, (float) $inv->cash_received - (float) ($inv->change_returned ?? 0))
+                    : (float) $inv->payable_amount;
+                $autoCashSales += $cashCollected;
+                $autoCashEntries[] = $cashCollected;
             }
 
             $sId = $inv->staff_id ?: $firstStaffId;
@@ -638,6 +665,7 @@ class ReportController extends Controller
 
         return view('reports.daily', compact(
             'branch',
+            'isGreenAvenue',
             'dateStr',
             'carbonDate',
             'formattedHeaderDate',
@@ -650,6 +678,7 @@ class ReportController extends Controller
             'autoPendingPayments',
             'autoCashSales',
             'autoCashEntries',
+            'dailyExtraAmountTotal',
             'systemExpenses',
             'drawerExpensesTotal',
             'nonDrawerExpensesTotal',

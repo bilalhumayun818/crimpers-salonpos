@@ -756,6 +756,12 @@
             <span class="f-pre">PKR</span>
             <input type="number" id="pay-cash" class="f-input pl" placeholder="0.00" step="0.01">
           </div>
+          @if($supportsExtraAmount)
+          <div style="margin-top:10px;">
+            <span class="f-lbl">Extra Amount / Tip</span>
+            <div class="f-prewrap"><span class="f-pre">PKR</span><input type="number" id="extra-amount" class="f-input pl" value="0" min="0" step="0.01"></div>
+          </div>
+          @endif
           <div class="chg-box" id="chg-box">
             <span class="chg-lbl">Change to Return</span>
             <span class="chg-val" id="chg-val">PKR 0.00</span>
@@ -773,6 +779,12 @@
             <span class="chg-lbl">Change to Return</span>
             <span class="chg-val" id="card-chg-val">PKR 0.00</span>
           </div>
+          @if($supportsExtraAmount)
+          <div style="margin-top:10px;">
+            <span class="f-lbl">Extra Amount / Tip (PKR)</span>
+            <div class="f-prewrap"><span class="f-pre">PKR</span><input type="number" id="card-extra-amount" class="f-input pl" value="0" min="0" step="0.01"></div>
+          </div>
+          @endif
         </div>
 
         {{-- Bank group --}}
@@ -784,6 +796,16 @@
           </div>
           <span class="f-lbl">Bank Name</span>
           <input type="text" id="pay-bank-name" class="f-input" placeholder="e.g. Meezan Bank">
+          <div class="chg-box" id="bank-chg-box" style="margin-top:8px;">
+            <span class="chg-lbl">Cash Change to Return</span>
+            <span class="chg-val" id="bank-chg-val">PKR 0.00</span>
+          </div>
+          @if($supportsExtraAmount)
+          <div style="margin-top:10px;">
+            <span class="f-lbl">Extra Amount / Tip (PKR)</span>
+            <div class="f-prewrap"><span class="f-pre">PKR</span><input type="number" id="bank-extra-amount" class="f-input pl" value="0" min="0" step="0.01"></div>
+          </div>
+          @endif
         </div>
 
         {{-- Credit group --}}
@@ -830,6 +852,16 @@
             <span class="chg-lbl">Change to Return</span>
             <span class="chg-val" id="split-chg-val">PKR 0.00</span>
           </div>
+          @if($supportsExtraAmount)
+          <div style="margin-top:12px;padding-top:10px;border-top:1px solid #e2e8f0;">
+            <span class="f-lbl">Extra Amount / Tip</span>
+            <div class="f-prewrap"><span class="f-pre">PKR</span><input type="number" id="split-extra-amount" class="f-input pl" value="0" min="0" step="0.01"></div>
+            <small style="display:block;color:#64748b;margin-top:5px;">Allocate the extra to the payment methods used.</small>
+            <div class="split-row"><span class="split-lbl">Extra Cash</span><input type="number" id="extra-cash-amount" class="split-inp" value="0" min="0" step="0.01"></div>
+            <div class="split-row"><span class="split-lbl">Extra Card</span><input type="number" id="extra-card-amount" class="split-inp" value="0" min="0" step="0.01"></div>
+            <div class="split-row"><span class="split-lbl">Extra Bank</span><input type="number" id="extra-bank-amount" class="split-inp" value="0" min="0" step="0.01"></div>
+          </div>
+          @endif
         </div>
 
       </div>
@@ -889,6 +921,7 @@
       var currentDiscount = packageDiscount;                   // can be increased manually
       var currentMethod = 'cash';
       var previousBalance = parseFloat(session.pending_balance || 0);
+      var supportsExtraAmount = @json($supportsExtraAmount);
 
       // Customer
       document.getElementById('cust-pill').textContent = session.customerName || 'Walk-in Customer';
@@ -962,9 +995,10 @@
         if (currentMethod === 'cash') {
           var given = parseFloat(document.getElementById('pay-cash').value) || 0;
           var box = document.getElementById('chg-box');
-          if (given >= r.pay && given > 0) {
+          var cashTip = supportsExtraAmount ? (parseFloat(document.getElementById('extra-amount')?.value) || 0) : 0;
+          if (given >= r.pay + cashTip && given > 0) {
             box.classList.add('show');
-            document.getElementById('chg-val').textContent = 'PKR ' + (given - r.pay).toFixed(2);
+            document.getElementById('chg-val').textContent = 'PKR ' + Math.max(0, given - r.pay - cashTip).toFixed(2);
           } else {
             box.classList.remove('show');
           }
@@ -972,10 +1006,11 @@
 
         if (currentMethod === 'card') {
           var given = parseFloat(document.getElementById('pay-card-amount').value) || 0;
+          var cardTip = supportsExtraAmount ? (parseFloat(document.getElementById('card-extra-amount')?.value) || 0) : 0;
           var box = document.getElementById('card-chg-box');
-          if (given >= r.pay && given > 0) {
+          if (given >= r.pay + cardTip && given > 0) {
             box.classList.add('show');
-            document.getElementById('card-chg-val').textContent = 'PKR ' + (given - r.pay).toFixed(2);
+            document.getElementById('card-chg-val').textContent = 'PKR ' + Math.max(0, given - r.pay - cardTip).toFixed(2);
           } else {
             box.classList.remove('show');
           }
@@ -983,8 +1018,16 @@
 
         if (currentMethod === 'bank') {
           var given = parseFloat(document.getElementById('pay-bank-amount').value) || 0;
+          var bankTip = supportsExtraAmount ? (parseFloat(document.getElementById('bank-extra-amount')?.value) || 0) : 0;
           document.getElementById('chg-box').classList.remove('show');
           document.getElementById('card-chg-box').classList.remove('show');
+          var bankBox = document.getElementById('bank-chg-box');
+          if (given >= r.pay + bankTip && given > 0) {
+            bankBox.classList.add('show');
+            document.getElementById('bank-chg-val').textContent = 'PKR ' + Math.max(0, given - r.pay - bankTip).toFixed(2);
+          } else {
+            bankBox.classList.remove('show');
+          }
         }
 
         var isCredit = document.getElementById('cb-credit-bill').checked;
@@ -1139,12 +1182,22 @@
 
           if (currentMethod !== 'cash') document.getElementById('chg-box').classList.remove('show');
           if (currentMethod !== 'card') document.getElementById('card-chg-box').classList.remove('show');
+          if (currentMethod !== 'bank') document.getElementById('bank-chg-box').classList.remove('show');
           updateTotals();
         });
       });
 
       document.getElementById('pay-cash').addEventListener('input', updateTotals);
+      document.getElementById('extra-amount')?.addEventListener('input', updateTotals);
+      document.getElementById('split-extra-amount')?.addEventListener('input', function() {
+          var tip = parseFloat(this.value) || 0;
+          document.getElementById('extra-cash-amount').value = tip.toFixed(2);
+          document.getElementById('extra-card-amount').value = '0';
+          document.getElementById('extra-bank-amount').value = '0';
+      });
       document.getElementById('pay-card-amount').addEventListener('input', updateTotals);
+      document.getElementById('card-extra-amount')?.addEventListener('input', updateTotals);
+      document.getElementById('bank-extra-amount')?.addEventListener('input', updateTotals);
       document.getElementById('split-cash').addEventListener('input', updateTotals);
       document.getElementById('split-card').addEventListener('input', updateTotals);
 
@@ -1284,16 +1337,19 @@
         } else {
             if (currentMethod === 'cash') {
               var given = parseFloat(document.getElementById('pay-cash').value) || 0;
-              if (given < r.pay) { alert('Insufficient cash! Please enter the correct amount.'); return; }
+              var cashTip = supportsExtraAmount ? (parseFloat(document.getElementById('extra-amount')?.value) || 0) : 0;
+              if (given < r.pay + cashTip) { alert('Cash received must cover the bill and extra amount.'); return; }
             }
             if (currentMethod === 'card') {
               var cardAmt = parseFloat(document.getElementById('pay-card-amount').value) || 0;
-              if (cardAmt < r.pay - 0.01) { alert('Card amount does not cover the full total!'); return; }
+              var cardTip = supportsExtraAmount ? (parseFloat(document.getElementById('card-extra-amount')?.value) || 0) : 0;
+              if (cardAmt < r.pay + cardTip - 0.01) { alert('Card amount does not cover the bill and extra amount!'); return; }
             }
             if (currentMethod === 'bank') {
               var bankAmt = parseFloat(document.getElementById('pay-bank-amount').value) || 0;
               var bName = document.getElementById('pay-bank-name').value.trim();
-              if (bankAmt < r.pay - 0.01) { alert('Bank amount does not cover total!'); return; }
+              var bankTip = supportsExtraAmount ? (parseFloat(document.getElementById('bank-extra-amount')?.value) || 0) : 0;
+              if (bankAmt < r.pay + bankTip - 0.01) { alert('Bank amount does not cover the bill and extra amount!'); return; }
               if (!bName) { alert('Please enter Bank Name!'); return; }
             }
             if (currentMethod === 'split') {
@@ -1301,8 +1357,13 @@
               var sk = parseFloat(document.getElementById('split-card').value) || 0;
               var sb = parseFloat(document.getElementById('split-bank').value) || 0;
               var sbName = document.getElementById('split-bank-name').value.trim();
+              var splitTip = supportsExtraAmount ? (parseFloat(document.getElementById('split-extra-amount')?.value) || 0) : 0;
+              var tipCash = supportsExtraAmount ? (parseFloat(document.getElementById('extra-cash-amount')?.value) || 0) : 0;
+              var tipCard = supportsExtraAmount ? (parseFloat(document.getElementById('extra-card-amount')?.value) || 0) : 0;
+              var tipBank = supportsExtraAmount ? (parseFloat(document.getElementById('extra-bank-amount')?.value) || 0) : 0;
+              if (Math.abs(tipCash + tipCard + tipBank - splitTip) > 0.01) { alert('Extra cash/card/bank must add up to the extra amount.'); return; }
               if (sc + sk + sb < r.pay - 0.01) { alert('Split amounts do not cover the full total!'); return; }
-              if (sb > 0 && !sbName) { alert('Please enter Bank Name for Split Payment!'); return; }
+              if ((sb > 0 || tipBank > 0) && !sbName) { alert('Please enter Bank Name for Split Payment!'); return; }
             }
         }
 
@@ -1336,21 +1397,38 @@
         
         if (currentMethod === 'cash') {
           payload.cash_received = parseFloat(document.getElementById('pay-cash').value) || 0;
-          payload.change_returned = payload.cash_received - r.pay;
+          payload.extra_amount = supportsExtraAmount ? (parseFloat(document.getElementById('extra-amount')?.value) || 0) : 0;
+          payload.extra_cash_amount = payload.extra_amount;
+          payload.change_returned = payload.cash_received - r.pay - payload.extra_amount;
         } else if (currentMethod === 'card') {
           payload.cash_received = parseFloat(document.getElementById('pay-card-amount').value) || 0;
-          payload.change_returned = payload.cash_received - r.pay;
+          payload.extra_amount = supportsExtraAmount ? (parseFloat(document.getElementById('card-extra-amount')?.value) || 0) : 0;
+          payload.extra_card_amount = payload.extra_amount;
+          payload.change_returned = payload.cash_received - r.pay - payload.extra_amount;
         } else if (currentMethod === 'bank') {
           payload.cash_received = parseFloat(document.getElementById('pay-bank-amount').value) || 0;
           payload.bank_name = document.getElementById('pay-bank-name').value.trim();
-          payload.change_returned = payload.cash_received - r.pay;
+          payload.extra_amount = supportsExtraAmount ? (parseFloat(document.getElementById('bank-extra-amount')?.value) || 0) : 0;
+          payload.extra_bank_amount = payload.extra_amount;
+          payload.change_returned = payload.cash_received - r.pay - payload.extra_amount;
         } else if (currentMethod === 'split') {
           payload.split_cash = parseFloat(document.getElementById('split-cash').value) || 0;
           payload.split_card = parseFloat(document.getElementById('split-card').value) || 0;
           payload.split_bank = parseFloat(document.getElementById('split-bank').value) || 0;
           payload.bank_name = document.getElementById('split-bank-name').value.trim();
-          payload.cash_received = payload.split_cash + payload.split_card + payload.split_bank;
-          payload.change_returned = payload.cash_received - r.pay;
+          payload.extra_amount = supportsExtraAmount ? (parseFloat(document.getElementById('split-extra-amount')?.value) || 0) : 0;
+          payload.extra_cash_amount = supportsExtraAmount ? (parseFloat(document.getElementById('extra-cash-amount')?.value) || 0) : 0;
+          payload.extra_card_amount = supportsExtraAmount ? (parseFloat(document.getElementById('extra-card-amount')?.value) || 0) : 0;
+          payload.extra_bank_amount = supportsExtraAmount ? (parseFloat(document.getElementById('extra-bank-amount')?.value) || 0) : 0;
+          payload.cash_received = payload.split_cash + payload.split_card + payload.split_bank + payload.extra_amount;
+          payload.change_returned = Math.max(0, payload.split_cash + payload.split_card + payload.split_bank - r.pay);
+        }
+
+        if (isCredit) {
+            payload.extra_amount = 0;
+            payload.extra_cash_amount = 0;
+            payload.extra_card_amount = 0;
+            payload.extra_bank_amount = 0;
         }
 
         if (isCredit) {
