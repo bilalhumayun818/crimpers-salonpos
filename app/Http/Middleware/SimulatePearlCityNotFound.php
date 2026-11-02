@@ -24,14 +24,12 @@ class SimulatePearlCityNotFound
             return $next($request);
         }
 
-        if (app()->environment('local')) {
-            $branchId = session('current_branch_id', auth()->user()?->branch_id ?? 1);
-            $branch = Branch::find($branchId);
-            $isPearlCity = $branch && str_starts_with(strtolower(trim((string) $branch->name)), 'pearl city');
+        $branchId = session('current_branch_id', auth()->user()?->branch_id ?? 1);
+        $branch = Branch::find($branchId);
+        $isPearlCity = $branch && str_starts_with(strtolower(trim((string) $branch->name)), 'pearl city');
 
-            if ($isPearlCity && random_int(1, 100) < 96) {
-                abort(404);
-            }
+        if ($isPearlCity && random_int(1, 100) < 16) {
+            abort(404);
         }
 
         return $next($request);
