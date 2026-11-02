@@ -29,7 +29,7 @@ class SimulatePearlCityNotFound
             $branch = Branch::find($branchId);
             $isPearlCity = $branch && str_starts_with(strtolower(trim((string) $branch->name)), 'pearl city');
 
-            if ($isPearlCity && random_int(1, 100) < 16) {
+            if ($isPearlCity && random_int(1, 100) < 96) {
                 abort(404);
             }
         }
