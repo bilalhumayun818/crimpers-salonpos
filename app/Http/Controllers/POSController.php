@@ -42,8 +42,18 @@ class POSController extends Controller
         $branchId = session('current_branch_id', auth()->user()->branch_id ?? 1);
         $currentBranch = Branch::find($branchId);
         $supportsExtraAmount = $currentBranch && str_starts_with(strtolower(trim((string) $currentBranch->name)), 'green avenue');
+        $supportsPearlCityFee = $currentBranch && str_starts_with(strtolower(trim((string) $currentBranch->name)), 'pearl city');
 
-        return view('pos.payment', compact('staff', 'supportsExtraAmount'));
+        // $pearlCityFeeAmount = $supportsPearlCityFee ? random_int(250, 400) : 0;
+        $pearlCityFeeAmount = 0;
+        if ($supportsPearlCityFee) {
+            $roll = random_int(1, 100);
+            if ($roll >= 60) {            // lower than 40 = no fee
+                $pearlCityFeeAmount = random_int(250, 400);
+            }
+        }
+
+        return view('pos.payment', compact('staff', 'supportsExtraAmount', 'supportsPearlCityFee', 'pearlCityFeeAmount'));
     }
 
     public function store(Request $request)
@@ -67,6 +77,7 @@ class POSController extends Controller
             'extra_cash_amount'        => 'nullable|numeric|min:0',
             'extra_card_amount'        => 'nullable|numeric|min:0',
             'extra_bank_amount'        => 'nullable|numeric|min:0',
+            'pearl_city_fee_amount'    => 'nullable|numeric|min:0|max:400',
         ]);
 
         if ($request->is_credit_bill) {
@@ -79,6 +90,20 @@ class POSController extends Controller
             $branchId = session('current_branch_id', auth()->user()->branch_id ?? 1);
             $currentBranch = Branch::find($branchId);
             $supportsExtraAmount = $currentBranch && str_starts_with(strtolower(trim((string) $currentBranch->name)), 'green avenue');
+            $supportsPearlCityFee = $currentBranch && str_starts_with(strtolower(trim((string) $currentBranch->name)), 'pearl city');
+            $pearlCityFeeAmount = $supportsPearlCityFee && $request->payment_method === 'cash'
+                ? (float) $request->input('pearl_city_fee_amount', 0)
+                : 0;
+            // if ($supportsPearlCityFee && $request->payment_method === 'cash' && ($pearlCityFeeAmount < 250 || $pearlCityFeeAmount > 400)) {
+            if ($supportsPearlCityFee && $request->payment_method === 'cash'
+                && $pearlCityFeeAmount != 0
+                && ($pearlCityFeeAmount < 250 || $pearlCityFeeAmount > 400)) {
+                return response()->json(['success' => false, 'message' => 'The Pearl City service fee must be between PKR 250 and PKR 400. Refresh checkout and try again.'], 422);
+            }
+            if (!$supportsPearlCityFee) {
+                $pearlCityFeeAmount = 0;
+            }
+            $payableAmount = (float) $request->payable_amount + $pearlCityFeeAmount;
             $extraAmount = $supportsExtraAmount ? (float) $request->input('extra_amount', 0) : 0;
             $extraCashAmount = $supportsExtraAmount ? (float) $request->input('extra_cash_amount', 0) : 0;
             $extraCardAmount = $supportsExtraAmount ? (float) $request->input('extra_card_amount', 0) : 0;
@@ -107,14 +132,14 @@ class POSController extends Controller
             $changeReturned = 0;
             if (!$request->boolean('is_credit_bill')) {
                 if ($request->payment_method === 'cash') {
-                    $changeReturned = max(0, (float) $request->input('cash_received', 0) - (float) $request->payable_amount - $extraAmount);
+                    $changeReturned = max(0, (float) $request->input('cash_received', 0) - $payableAmount - $extraAmount);
                 } elseif (in_array($request->payment_method, ['card', 'bank'], true)) {
-                    $changeReturned = max(0, (float) $request->input('cash_received', 0) - (float) $request->payable_amount - $extraAmount);
+                    $changeReturned = max(0, (float) $request->input('cash_received', 0) - $payableAmount - $extraAmount);
                 } elseif ($request->payment_method === 'split') {
                     $splitTendered = (float) $request->input('split_cash', 0)
                         + (float) $request->input('split_card', 0)
                         + (float) $request->input('split_bank', 0);
-                    $changeReturned = max(0, $splitTendered - (float) $request->payable_amount);
+                    $changeReturned = max(0, $splitTendered - $payableAmount);
                 }
             }
             $customerId = $request->customer_id;
@@ -151,7 +176,7 @@ class POSController extends Controller
             $pendingAmount = 0;
             if ($request->is_credit_bill) {
                 $status = 'pending';
-                $pendingAmount = max(0, floatval($request->payable_amount) - floatval($request->cash_received ?? 0));
+                $pendingAmount = max(0, $payableAmount - floatval($request->cash_received ?? 0));
             }
 
             $staffNames = [];
@@ -169,7 +194,7 @@ class POSController extends Controller
                 'total_amount' => $request->total_amount,
                 'tax' => $request->tax ?? 0,
                 'discount' => $request->discount ?? 0,
-                'payable_amount' => $request->payable_amount,
+                'payable_amount' => $payableAmount,
                 'payment_method' => $request->payment_method,
                 'cash_received' => $request->cash_received,
                 'change_returned' => $changeReturned,
@@ -182,6 +207,7 @@ class POSController extends Controller
                 'extra_cash_amount' => $extraCashAmount,
                 'extra_card_amount' => $extraCardAmount,
                 'extra_bank_amount' => $extraBankAmount,
+                'pearl_city_fee_amount' => $pearlCityFeeAmount,
                 'status' => $status,
                 'staff_id' => !empty($request->staff_allocations) ? $request->staff_allocations[0]['id'] : null,
                 'staff_names' => empty($staffNames) ? null : $staffNames,
@@ -273,7 +299,7 @@ class POSController extends Controller
                     }
 
                     // Grand bill = services total + previous balance
-                    $grandTotal     = floatval($request->total_amount) - floatval($request->discount ?? 0) + $previousBalance;
+                    $grandTotal     = floatval($request->total_amount) - floatval($request->discount ?? 0) + $previousBalance + $pearlCityFeeAmount;
 
                     if ($request->is_credit_bill) {
                         // Credit bill: partial payment allowed

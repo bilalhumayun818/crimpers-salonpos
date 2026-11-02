@@ -15,6 +15,7 @@ class BranchController extends Controller
         
         if (Branch::where('id', $branchId)->exists()) {
             session(['current_branch_id' => $branchId]);
+            session(['skip_pearl_city_404_once' => true]);
         }
 
         return back()->with('success', 'Branch switched successfully!');

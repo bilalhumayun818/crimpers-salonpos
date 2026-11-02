@@ -241,6 +241,9 @@
                     </td>
                     <td style="padding: 14px 20px; text-align: right; font-size: 0.9rem; font-weight: 700; color: #166534;">
                         Rs {{ number_format($invoice->payable_amount, 2) }}
+                        <!-- @if((float) ($invoice->pearl_city_fee_amount ?? 0) > 0)
+                            <div style="font-size:0.72rem;color:#92400e;font-weight:600;">Includes Pearl City fee: Rs {{ number_format($invoice->pearl_city_fee_amount, 2) }}</div>
+                        @endif -->
                         @if((float) ($invoice->extra_amount ?? 0) > 0)
                             <div style="font-size:0.72rem;color:#15803d;font-weight:600;">+ Rs {{ number_format($invoice->extra_amount, 2) }} extra</div>
                         @endif

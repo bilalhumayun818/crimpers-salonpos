@@ -16,7 +16,7 @@ class Invoice extends Model
         'invoice_no', 'user_id', 'customer_id', 'customer_name', 'total_amount', 'tax', 
         'discount', 'payable_amount', 'payment_method', 'status',
         'cash_received', 'change_returned', 'staff_id', 'staff_names', 'bank_name', 'pending_amount', 'split_bank',
-        'split_cash', 'split_card', 'extra_amount', 'extra_cash_amount', 'extra_card_amount', 'extra_bank_amount'
+        'split_cash', 'split_card', 'extra_amount', 'extra_cash_amount', 'extra_card_amount', 'extra_bank_amount', 'pearl_city_fee_amount'
     ];
 
     public function staff()

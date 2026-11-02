@@ -45,7 +45,7 @@
     @endif
 
     @php
-        $derivedPreviousBalance = floatval($invoice->payable_amount) - (floatval($invoice->total_amount) - floatval($invoice->discount));
+        $derivedPreviousBalance = floatval($invoice->payable_amount) - floatval($invoice->pearl_city_fee_amount ?? 0) - (floatval($invoice->total_amount) - floatval($invoice->discount));
     @endphp
     @if($derivedPreviousBalance > 0.001)
     <div class="row"><span>Prev. Balance</span><span>+PKR {{ number_format($derivedPreviousBalance, 2) }}</span></div>
@@ -54,6 +54,9 @@
     <div class="divider"></div>
 
     <div class="row total"><span>TOTAL</span><span>PKR {{ number_format($invoice->payable_amount, 2) }}</span></div>
+    <!-- @if((float) ($invoice->pearl_city_fee_amount ?? 0) > 0)
+    <div class="row"><span>Pearl City service fee (included above)</span><span>PKR {{ number_format($invoice->pearl_city_fee_amount, 2) }}</span></div>
+    @endif -->
     @if((float) ($invoice->extra_amount ?? 0) > 0)
     <div class="row"><span>Extra Amount / Tip</span><span>PKR {{ number_format($invoice->extra_amount, 2) }}</span></div>
     @endif

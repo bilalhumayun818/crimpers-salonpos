@@ -643,6 +643,12 @@
           <span style="color:#ef4444; font-weight:700;">⚠ Previous Balance</span>
           <span class="v" style="color:#ef4444; font-weight:700;" id="t-prev-bal">+PKR 0.00</span>
         </div>
+        <!-- its things is in payment , tickets and in pos lastly in, index, PosController, Invoice, HIstory, 2026_10_29 also history -->
+        <!-- @if($supportsPearlCityFee)
+        <div class="t-row" id="pearl-city-fee-row" style="color:#92400e;font-weight:700;">
+          <span>Pearl City cash service fee</span><span class="v" id="pearl-city-fee-value">PKR {{ number_format($pearlCityFeeAmount, 2) }}</span>
+        </div>
+        @endif -->
         <div class="t-total">
           <span class="t-total-lbl">Total Payable</span>
           <span class="t-total-val" id="t-total">PKR 0.00</span>
@@ -922,6 +928,10 @@
       var currentMethod = 'cash';
       var previousBalance = parseFloat(session.pending_balance || 0);
       var supportsExtraAmount = @json($supportsExtraAmount);
+      var pearlCityFeeAmount = @json($pearlCityFeeAmount);
+      function getPearlCityFee() {
+        return @json($supportsPearlCityFee) && currentMethod === 'cash' ? pearlCityFeeAmount : 0;
+      }
 
       // Customer
       document.getElementById('cust-pill').textContent = session.customerName || 'Walk-in Customer';
@@ -967,7 +977,8 @@
         var extraManualDiscount = currentDiscount - packageDiscount;
         if (extraManualDiscount < 0) extraManualDiscount = 0;
 
-        var pay = actualSub - extraManualDiscount + previousBalance;
+        var appliedPearlCityFee = getPearlCityFee();
+        var pay = actualSub - extraManualDiscount + previousBalance + appliedPearlCityFee;
         if (pay < 0) pay = 0;
         return { sub: origSub, actualSub: actualSub, tax: tax, pay: pay };
       }
@@ -977,6 +988,11 @@
         // Show original subtotal (full service prices)
         document.getElementById('t-sub').textContent = 'PKR ' + r.sub.toFixed(2);
         document.getElementById('t-total').textContent = 'PKR ' + r.pay.toFixed(2);
+        var pearlFeeRow = document.getElementById('pearl-city-fee-row');
+        if (pearlFeeRow) {
+          pearlFeeRow.style.display = getPearlCityFee() > 0 ? 'flex' : 'none';
+          document.getElementById('pearl-city-fee-value').textContent = 'PKR ' + getPearlCityFee().toFixed(2);
+        }
 
         if (currentDiscount > 0) {
           document.getElementById('t-disc-row').style.display = 'flex';
@@ -1386,7 +1402,9 @@
           total_amount: r.sub,
           tax: r.tax,
           discount: currentDiscount,
-          payable_amount: r.pay,
+          // Send the normal bill separately; the server adds the validated Pearl City fee once.
+          payable_amount: r.pay - getPearlCityFee(),
+          pearl_city_fee_amount: getPearlCityFee(),
           previous_balance: previousBalance,
           customer_name: custName,
           customer_phone: custPhone,
@@ -1472,11 +1490,6 @@
       document.getElementById('close-modal').onclick = function () {
         localStorage.removeItem('pos_checkout_session');
         window.location.href = "{{ route('pos.index') }}";
-      };
-
-    });
-  </script>
-@endpushwindow.location.href = "{{ route('pos.index') }}";
       };
 
     });

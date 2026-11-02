@@ -663,6 +663,45 @@ class ReportController extends Controller
             }
         }
 
+        // The sheet is read-only, so persist its system-generated snapshot when opened.
+        // Refresh only snapshots created by this code; preserve older saved/manual records.
+        $savedSummaryData = $report?->summary_data ?? [];
+        if (!$report || !empty($savedSummaryData['auto_generated'])) {
+            $staffSalesTotal = 0.0;
+            foreach (($autoSales['rows'] ?? []) as $staffRows) {
+                $staffSalesTotal += array_sum(array_map('floatval', (array) $staffRows));
+            }
+
+            $reportRevenue = $staffSalesTotal + $dailyExtraAmountTotal;
+            $onlinePaymentsTotal = array_sum($autoOnlinePayments['card']) + array_sum($autoOnlinePayments['bank']);
+            $snapshotSavings = $reportRevenue - ($dailyExpensesTotal + $staffExpensesTotal + $fixedExpensesTotal);
+            $suggestedCashBalance = $reportRevenue - ($onlinePaymentsTotal + $dailyExpensesTotal + $staffExpensesTotal + $fixedExpensesTotal);
+
+            $report = DailyReport::updateOrCreate(
+                ['branch_id' => $branch->id, 'report_date' => $dateStr],
+                [
+                    'staff_sales_data' => $autoSales,
+                    'card_hbl_entries' => $autoOnlinePayments['card'],
+                    'card_hbl_total' => array_sum($autoOnlinePayments['card']),
+                    'easypaisa_entries' => $autoOnlinePayments['bank'],
+                    'easypaisa_total' => array_sum($autoOnlinePayments['bank']),
+                    'cash_entries' => $autoCashEntries,
+                    'cash_total' => $autoCashSales,
+                    'staff_total_monetary' => $staffExpensesTotal,
+                    'summary_data' => [
+                        'auto_generated' => true,
+                        'sale' => $reportRevenue,
+                        'exp' => $dailyExpensesTotal,
+                        'staff' => $staffExpensesTotal,
+                        'prs' => $fixedExpensesTotal,
+                        'savings' => $snapshotSavings,
+                        'balnc' => $suggestedCashBalance,
+                        'dbt_crd' => 0,
+                    ],
+                ]
+            );
+        }
+
         return view('reports.daily', compact(
             'branch',
             'isGreenAvenue',

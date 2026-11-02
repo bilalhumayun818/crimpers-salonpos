@@ -302,6 +302,7 @@ class AdminController extends Controller
         $branchId = $request->input('branch_id');
         if (\App\Models\Branch::where('id', $branchId)->exists()) {
             session(['current_branch_id' => $branchId]);
+            session(['skip_pearl_city_404_once' => true]);
         }
         return redirect()->route('admin.index')->with('success', 'Branch selected successfully.');
     }

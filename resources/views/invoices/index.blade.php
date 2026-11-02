@@ -312,6 +312,7 @@
                                 </div>
                             </td>
                             <td style="font-weight:800;color:#c9a800;">PKR {{ number_format($invoice->payable_amount, 2) }}
+                                <!-- @if((float) ($invoice->pearl_city_fee_amount ?? 0) > 0)<div style="font-size:.7rem;color:#92400e;font-weight:700;">Includes Pearl City fee: PKR {{ number_format($invoice->pearl_city_fee_amount, 2) }}</div>@endif -->
                                 @if((float) ($invoice->extra_amount ?? 0) > 0)<div style="font-size:.7rem;color:#15803d;font-weight:700;">+ PKR {{ number_format($invoice->extra_amount, 2) }} extra</div>@endif
                             </td>
                             <td style="font-weight:600;color:#64748b;">PKR {{ number_format($totalCost, 2) }}</td>
@@ -384,7 +385,9 @@
                                 {{ $invoice->staff_names ?? ($invoice->staff?->name ?? '-') }}
                             </div>
                         </td>
-                        <td style="font-weight:800;color:#c9a800;">PKR {{ number_format($invoice->payable_amount, 2) }}</td>
+                        <td style="font-weight:800;color:#c9a800;">PKR {{ number_format($invoice->payable_amount, 2) }}
+                            @if((float) ($invoice->pearl_city_fee_amount ?? 0) > 0)<div style="font-size:.7rem;color:#92400e;font-weight:700;">Includes Pearl City fee: PKR {{ number_format($invoice->pearl_city_fee_amount, 2) }}</div>@endif
+                        </td>
                         <td style="font-weight:600;color:#64748b;">PKR {{ number_format($totalCost, 2) }}</td>
                         <td style="font-weight:800;color:{{ $profit >= 0 ? '#10b981' : '#ef4444' }};">PKR {{ number_format($profit, 2) }}</td>
                         <td>
