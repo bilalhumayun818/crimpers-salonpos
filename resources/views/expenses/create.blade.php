@@ -111,7 +111,7 @@ textarea.f-input{resize:vertical;min-height:90px;}
                         <label class="f-label">Amount (PKR)</label>
                         <div style="position:relative;">
                             <span style="position:absolute;left:16px;top:50%;transform:translateY(-50%);font-weight:700;color:#94a3b8;">Rs.</span>
-                            <input type="number" step="0.01" name="amount_daily" class="f-input" style="padding-left:46px;" placeholder="0.00" id="amt-daily">
+                            <input type="number" step="0.01" name="amount_daily" class="f-input" style="padding-left:46px;" placeholder="0.00" id="amt-daily" onwheel="event.preventDefault()">
                         </div>
                         <div style="color:#ef4444;font-size:.75rem;margin-top:6px;font-weight:600;display:none;" class="err-amt-daily"></div>
                     </div>
@@ -187,7 +187,7 @@ textarea.f-input{resize:vertical;min-height:90px;}
                         <label class="f-label">Amount (PKR)</label>
                         <div style="position:relative;">
                             <span style="position:absolute;left:16px;top:50%;transform:translateY(-50%);font-weight:700;color:#94a3b8;">Rs.</span>
-                            <input type="number" step="0.01" name="amount_fixed" class="f-input" style="padding-left:46px;" placeholder="0.00" id="amt-fixed">
+                            <input type="number" step="0.01" name="amount_fixed" class="f-input" style="padding-left:46px;" placeholder="0.00" id="amt-fixed" onwheel="event.preventDefault()">
                         </div>
                         <div style="color:#ef4444;font-size:.75rem;margin-top:6px;font-weight:600;display:none;" class="err-amt-fixed"></div>
                     </div>
@@ -322,7 +322,7 @@ textarea.f-input{resize:vertical;min-height:90px;}
                         <label class="f-label">Amount (PKR)</label>
                         <div style="position:relative;">
                             <span style="position:absolute;left:16px;top:50%;transform:translateY(-50%);font-weight:700;color:#94a3b8;">Rs.</span>
-                            <input type="number" step="0.01" name="amount_staff" class="f-input" style="padding-left:46px;" placeholder="0.00" id="amt-staff" oninput="onAmountInputChanged()">
+                            <input type="number" step="0.01" name="amount_staff" class="f-input" style="padding-left:46px;" placeholder="0.00" id="amt-staff" oninput="onAmountInputChanged()" onwheel="event.preventDefault()">
                         </div>
                         <div style="color:#ef4444;font-size:.75rem;margin-top:6px;font-weight:600;display:none;" class="err-amt-staff"></div>
                     </div>
