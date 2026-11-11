@@ -382,6 +382,20 @@
                         <label class="f-label">Home Address <span>*</span></label>
                         <textarea name="address" required class="f-textarea" placeholder="Enter complete home address...">{{ old('address') }}</textarea>
                     </div>
+                    <div class="f-group" style="margin-top:16px;">
+                        <label class="f-label" for="employee-type">Employee Type <span>*</span></label>
+                        <select name="position_choice" id="employee-type" class="f-select" required>
+                            <option value="Employee" {{ old('position_choice', 'Employee') === 'Employee' ? 'selected' : '' }}>Employee</option>
+                            <option value="Worker" {{ old('position_choice') === 'Worker' ? 'selected' : '' }}>Worker</option>
+                            <option value="Senior" {{ old('position_choice') === 'Senior' ? 'selected' : '' }}>Senior</option>
+                            <option value="Student" {{ old('position_choice') === 'Student' ? 'selected' : '' }}>Student</option>
+                            <option value="Sweeper" {{ old('position_choice') === 'Sweeper' ? 'selected' : '' }}>Sweeper</option>
+                            <option value="Cleaner" {{ old('position_choice') === 'Cleaner' ? 'selected' : '' }}>Cleaner</option>
+                            <option value="Cleanser" {{ old('position_choice') === 'Cleanser' ? 'selected' : '' }}>Cleanser</option>
+                            <option value="__custom__" {{ old('position_choice') === '__custom__' ? 'selected' : '' }}>Custom type...</option>
+                        </select>
+                        <input type="text" name="position_custom" id="employee-type-custom" class="f-input" value="{{ old('position_custom') }}" maxlength="255" placeholder="Enter employee type" style="display:{{ old('position_choice') === '__custom__' ? 'block' : 'none' }}; margin-top:8px;">
+                    </div>
                 </div>
             </div>
 
@@ -476,4 +490,15 @@
             </div>
         </form>
     </div>
+    <script>
+        const employeeType = document.getElementById('employee-type');
+        const customEmployeeType = document.getElementById('employee-type-custom');
+        function updateCustomEmployeeType() {
+            const isCustom = employeeType.value === '__custom__';
+            customEmployeeType.style.display = isCustom ? 'block' : 'none';
+            customEmployeeType.required = isCustom;
+        }
+        employeeType.addEventListener('change', updateCustomEmployeeType);
+        updateCustomEmployeeType();
+    </script>
 @endsection

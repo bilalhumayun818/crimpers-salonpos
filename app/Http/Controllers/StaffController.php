@@ -42,6 +42,8 @@ class StaffController extends Controller
             'cnic' => 'required|string',
             'address' => 'required|string',
             'salary' => 'required|numeric|min:0',
+            'position_choice' => 'required|string|in:Employee,Worker,Senior,Student,Sweeper,Cleaner,Cleanser,__custom__',
+            'position_custom' => 'required_if:position_choice,__custom__|nullable|string|max:255',
             'email' => 'nullable|email|unique:staff,email|unique:users,email',
             'password' => 'nullable|string|min:8|confirmed',
             'staff_role_id' => 'nullable|exists:staff_roles,id',
@@ -56,7 +58,10 @@ class StaffController extends Controller
         $validated['rating_total'] = 0;
         $validated['rating_count'] = 0;
         $validated['hiring_date'] = now();
-        $validated['position'] = 'Employee';
+        $validated['position'] = $request->input('position_choice') === '__custom__'
+            ? trim($request->input('position_custom'))
+            : $request->input('position_choice');
+        unset($validated['position_choice'], $validated['position_custom']);
         $validated['shift_start'] = '00:00:00';
         $validated['shift_end'] = '23:59:59';
 
@@ -120,6 +125,8 @@ class StaffController extends Controller
             'cnic' => 'required|string',
             'address' => 'required|string',
             'salary' => 'required|numeric|min:0',
+            'position_choice' => 'required|string|in:Employee,Worker,Senior,Student,Sweeper,Cleaner,Cleanser,__custom__',
+            'position_custom' => 'required_if:position_choice,__custom__|nullable|string|max:255',
             'email' => 'nullable|email|unique:staff,email,' . $staff->id,
             'password' => 'nullable|string|min:8|confirmed',
             'staff_role_id' => 'nullable|exists:staff_roles,id',
@@ -128,6 +135,10 @@ class StaffController extends Controller
         ]);
 
         $validated['status'] = $request->has('status');
+        $validated['position'] = $request->input('position_choice') === '__custom__'
+            ? trim($request->input('position_custom'))
+            : $request->input('position_choice');
+        unset($validated['position_choice'], $validated['position_custom']);
         if (isset($validated['salary'])) {
             $validated['base_salary'] = $validated['salary'];
         }

@@ -525,7 +525,9 @@ class ReportController extends Controller
         $activeStaff = Staff::where(function($q) use ($branch) {
             $q->where('branch_id', $branch->id)
               ->orWhereNull('branch_id');
-        })->where('status', true)->get();
+        })->where('status', true)->get()->reject(function ($staff) {
+            return in_array(strtolower(trim((string) $staff->position)), ['student', 'sweeper', 'cleaner', 'cleanser', 'cleanse'], true);
+        })->values();
 
         // Check if report exists for this branch and date
         $report = DailyReport::where('branch_id', $branch->id)
@@ -611,11 +613,16 @@ class ReportController extends Controller
                 $autoCashEntries[] = $cashCollected;
             }
 
+            $employeeType = strtolower(trim((string) ($inv->staff->position ?? '')));
+            $isExcludedType = in_array($employeeType, ['student', 'sweeper', 'cleaner', 'cleanser', 'cleanse'], true);
             $sId = $inv->staff_id ?: ($inv->other_performer_amount === null ? $firstStaffId : null);
-            if ($sId) {
+            if ($isExcludedType) {
+                $otherInvoices[] = $inv->other_performer_amount !== null
+                    ? (float) $inv->other_performer_amount
+                    : (float) $inv->payable_amount;
+            } elseif ($sId) {
                 $staffInvoices[$sId][] = (float) $inv->payable_amount;
-            }
-            if ($inv->other_performer_amount !== null) {
+            } elseif ($inv->other_performer_amount !== null) {
                 $otherInvoices[] = (float) $inv->other_performer_amount;
             }
         }

@@ -460,6 +460,26 @@
                         <label class="f-label">Home Address <span>*</span></label>
                         <textarea name="address" required class="f-textarea">{{ old('address', $staff->address) }}</textarea>
                     </div>
+                    @php
+                        $employeeTypes = ['Employee', 'Worker', 'Senior', 'Student', 'Sweeper', 'Cleaner', 'Cleanser'];
+                        $savedEmployeeType = old('position', $staff->position ?: 'Employee');
+                        $selectedEmployeeType = old('position_choice', in_array($savedEmployeeType, $employeeTypes, true) ? $savedEmployeeType : '__custom__');
+                        $customEmployeeTypeValue = old('position_custom', $selectedEmployeeType === '__custom__' ? $savedEmployeeType : '');
+                    @endphp
+                    <div class="f-group" style="margin-top:16px;">
+                        <label class="f-label" for="employee-type">Employee Type <span>*</span></label>
+                        <select name="position_choice" id="employee-type" class="f-select" required>
+                            <option value="Employee" {{ $selectedEmployeeType === 'Employee' ? 'selected' : '' }}>Employee</option>
+                            <option value="Worker" {{ $selectedEmployeeType === 'Worker' ? 'selected' : '' }}>Worker</option>
+                            <option value="Senior" {{ $selectedEmployeeType === 'Senior' ? 'selected' : '' }}>Senior</option>
+                            <option value="Student" {{ $selectedEmployeeType === 'Student' ? 'selected' : '' }}>Student</option>
+                            <option value="Sweeper" {{ $selectedEmployeeType === 'Sweeper' ? 'selected' : '' }}>Sweeper</option>
+                            <option value="Cleaner" {{ $selectedEmployeeType === 'Cleaner' ? 'selected' : '' }}>Cleaner</option>
+                            <option value="Cleanser" {{ $selectedEmployeeType === 'Cleanser' ? 'selected' : '' }}>Cleanser</option>
+                            <option value="__custom__" {{ $selectedEmployeeType === '__custom__' ? 'selected' : '' }}>Custom type...</option>
+                        </select>
+                        <input type="text" name="position_custom" id="employee-type-custom" class="f-input" value="{{ $customEmployeeTypeValue }}" maxlength="255" placeholder="Enter employee type" style="display:{{ $selectedEmployeeType === '__custom__' ? 'block' : 'none' }}; margin-top:8px;">
+                    </div>
                 </div>
             </div>
 
@@ -613,5 +633,14 @@
     <script>
         function openDeleteModal() { document.getElementById('deleteModal').style.display = 'flex'; }
         function closeDeleteModal() { document.getElementById('deleteModal').style.display = 'none'; }
+        const employeeType = document.getElementById('employee-type');
+        const customEmployeeType = document.getElementById('employee-type-custom');
+        function updateCustomEmployeeType() {
+            const isCustom = employeeType.value === '__custom__';
+            customEmployeeType.style.display = isCustom ? 'block' : 'none';
+            customEmployeeType.required = isCustom;
+        }
+        employeeType.addEventListener('change', updateCustomEmployeeType);
+        updateCustomEmployeeType();
     </script>
 @endsection
