@@ -563,6 +563,7 @@ class ReportController extends Controller
         $dailyExtraAmountTotal = (float) $invoices->sum('extra_amount');
 
         $staffInvoices = [];
+        $otherInvoices = [];
         $firstStaffId = $activeStaff->first()->id ?? null;
 
         foreach ($invoices as $inv) {
@@ -610,9 +611,12 @@ class ReportController extends Controller
                 $autoCashEntries[] = $cashCollected;
             }
 
-            $sId = $inv->staff_id ?: $firstStaffId;
+            $sId = $inv->staff_id ?: ($inv->other_performer_amount === null ? $firstStaffId : null);
             if ($sId) {
                 $staffInvoices[$sId][] = (float) $inv->payable_amount;
+            }
+            if ($inv->other_performer_amount !== null) {
+                $otherInvoices[] = (float) $inv->other_performer_amount;
             }
         }
 
@@ -622,6 +626,13 @@ class ReportController extends Controller
                 if ($rowNum <= 30) {
                     $autoSales['rows'][$rowNum][$sId] = $amt;
                 }
+            }
+        }
+
+        foreach ($otherInvoices as $idx => $amount) {
+            $rowNum = $idx + 1;
+            if ($rowNum <= 30) {
+                $autoSales['rows'][$rowNum]['other'] = $amount;
             }
         }
 

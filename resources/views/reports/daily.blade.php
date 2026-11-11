@@ -339,6 +339,8 @@
                         @foreach($activeStaff as $staff)
                             <th class="staff-col" data-staff-id="{{ $staff->id }}">{{ $staff->name }}</th>
                         @endforeach
+                        <th class="staff-col" data-staff-id="other">Other</th>
+                        <th class="discount-col"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -350,6 +352,9 @@
                                 <span id="staffDeals_{{ $staff->id }}">0 Deals</span>
                             </td>
                         @endforeach
+                        <td style="font-weight: 800; font-size: 0.72rem; color: #166534; text-align: center; background: #f0fdf4;">
+                            <span id="staffDeals_other">0 Deals</span>
+                        </td>
                         <td style="font-weight: 800; font-size: 0.72rem; color: #166534; text-align: center; background: #f0fdf4;">
                             <span id="totalDealsCell">0 Deals</span>
                         </td>
@@ -365,6 +370,7 @@
                             </td>
                         @endforeach
                         <td style="background:#fafafa;"></td>
+                        <td style="background:#fafafa;"></td>
                     </tr>
 
                     {{-- Fine Row --}}
@@ -376,6 +382,7 @@
                                 <input type="number" step="any" class="sheet-input input-fine calc-trigger" data-staff-id="{{ $staff->id }}" readonly value="{{ $val }}" placeholder="0">
                             </td>
                         @endforeach
+                        <td style="background:#fafafa;"></td>
                         <td style="background:#fafafa;"></td>
                     </tr>
 
@@ -392,6 +399,13 @@
                                 <input type="number" step="any" class="sheet-input sales-cell calc-trigger" data-row="{{ $r }}" data-staff-id="{{ $staff->id }}" readonly value="{{ $val }}">
                             </td>
                         @endforeach
+                        @php
+                            $savedOtherVal = $savedSales['rows'][$r]['other'] ?? null;
+                            $otherVal = ($savedOtherVal !== null && $savedOtherVal !== '') ? $savedOtherVal : ($autoSales['rows'][$r]['other'] ?? '');
+                        @endphp
+                        <td>
+                            <input type="number" step="any" class="sheet-input sales-cell calc-trigger" data-row="{{ $r }}" data-staff-id="other" readonly value="{{ $otherVal }}">
+                        </td>
                         <td style="background:#fafafa; font-size:0.72rem; color:#71717a; text-align:center; padding:1px 4px;">
                             @php $discVal = $savedSales['discounts'][$r] ?? ($autoSales['discounts'][$r] ?? ''); @endphp
                             @if($discVal) <span style="font-weight:700; color:#b45309;">-{{ $discVal }}</span> @endif
@@ -405,6 +419,7 @@
                         @foreach($activeStaff as $staff)
                             <td id="staffTotal_{{ $staff->id }}" class="staff-sum-cell" style="font-weight: 900;">0</td>
                         @endforeach
+                        <td id="staffTotal_other" class="staff-sum-cell" style="font-weight: 900;">0</td>
                         <td id="totalDiscountCell" style="font-weight: 900; text-align: center; background: #f4f4f5; font-size: 0.72rem; color: #b45309;">Disc: 0</td>
                     </tr>
 
@@ -417,6 +432,7 @@
                                 <input type="number" step="any" class="sheet-input input-comsn calc-trigger" data-staff-id="{{ $staff->id }}" readonly value="{{ $comsnVal }}" placeholder="0" style="color: #92400e; font-weight: 800;">
                             </td>
                         @endforeach
+                        <td style="background: #fffbeb;"></td>
                         <td id="totalComsnCell" style="font-weight: 900; text-align: center; color: #92400e; background: #fef3c7;">0</td>
                     </tr>
                 </tbody>
@@ -841,6 +857,7 @@
         @foreach($activeStaff as $staff)
             '{{ $staff->id }}': {{ (float) ($staff->commission_per_service ?? 10) }},
         @endforeach
+        'other': 0,
     };
 
     // Helper function to extract numerical values from text (handles "260+50", "300+650", numbers inside text)

@@ -69,6 +69,8 @@ class POSController extends Controller
             'staff_allocations'        => 'nullable|array',
             'staff_allocations.*.id'   => 'required|exists:staff,id',
             'staff_allocations.*.amount' => 'required|numeric|min:0',
+            'other_performer_selected' => 'nullable|boolean',
+            'other_performer_amount'   => 'nullable|numeric|min:0|required_if:other_performer_selected,1',
             'is_credit_bill'           => 'nullable|boolean',
             'bank_name'                => 'nullable|string',
             'split_bank'               => 'nullable|numeric',
@@ -183,8 +185,12 @@ class POSController extends Controller
             if (!empty($request->staff_allocations)) {
                 $staffIds = array_column($request->staff_allocations, 'id');
                 $staffList = \App\Models\Staff::whereIn('id', $staffIds)->pluck('name')->toArray();
-                $staffNames = implode(', ', $staffList);
+                $staffNames = $staffList;
             }
+            if ($request->boolean('other_performer_selected')) {
+                $staffNames[] = 'Other';
+            }
+            $staffNames = implode(', ', $staffNames);
 
             $invoice = Invoice::create([
                 'invoice_no' => 'INV-' . strtoupper(Str::random(8)),
@@ -211,6 +217,9 @@ class POSController extends Controller
                 'status' => $status,
                 'staff_id' => !empty($request->staff_allocations) ? $request->staff_allocations[0]['id'] : null,
                 'staff_names' => empty($staffNames) ? null : $staffNames,
+                'other_performer_amount' => $request->boolean('other_performer_selected')
+                    ? $request->input('other_performer_amount')
+                    : null,
             ]);
 
             foreach ($request->items as $item) {

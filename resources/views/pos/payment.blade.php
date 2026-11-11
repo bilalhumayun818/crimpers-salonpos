@@ -674,7 +674,7 @@
         </div>
 
         <div class="f-grp" id="staff-section">
-          <span class="f-lbl">Performed By (Staff) <span style="color:#ef4444; font-size:0.7rem; font-weight:800;">* Select staff or choose Other</span></span>
+          <span class="f-lbl">Performed By (Staff) <span style="color:#ef4444; font-size:0.7rem; font-weight:800;">* Select staff or Other</span></span>
           <div style="background:#fafafa; border:1.5px solid #e2e8f0; border-radius:12px; padding:10px; max-height: 200px; overflow-y: auto;">
             @foreach($staff as $s)
               <div class="staff-allocation-row" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid #f1f5f9;">
@@ -691,9 +691,17 @@
               </div>
             @endforeach
           </div>
-          <button type="button" id="other-performer-btn" aria-pressed="false" style="margin-top:8px; padding:8px 12px; border:1.5px solid #cbd5e1; border-radius:8px; background:#fff; color:#475569; font-size:.85rem; font-weight:600; cursor:pointer;">
-            Other / No listed staff performed the service
-          </button>
+          <div style="display:flex; align-items:center; gap:10px; margin-top:8px;">
+            <button type="button" id="other-performer-btn" aria-pressed="false" style="padding:8px 12px; border:1.5px solid #cbd5e1; border-radius:8px; background:#fff; color:#475569; font-size:.85rem; font-weight:600; cursor:pointer;">
+              Other / No listed staff
+            </button>
+            <div id="other-performer-amount-wrap" style="display:none; width:130px;">
+              <div class="f-prewrap">
+                <span class="f-pre" style="font-size:0.7rem;">PKR</span>
+                <input type="number" id="other-performer-amount" class="f-input pl" placeholder="0" min="0" step="0.01" style="padding:6px 10px 6px 38px; font-size:0.85rem;">
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="f-grp">
@@ -1229,9 +1237,12 @@
 
       function autoBalanceAllocations(changedInput) {
           var pool = getAvailableCommissionPool();
-          var inputs = Array.from(document.querySelectorAll('.staff-amt-input')).filter(function(inp) { 
-              return inp.closest('.staff-allocation-row').querySelector('.staff-checkbox').checked; 
+          var inputs = Array.from(document.querySelectorAll('.staff-checkbox:checked')).map(function(cb) {
+              return cb.closest('.staff-allocation-row').querySelector('.staff-amt-input');
           });
+          if (otherPerformerButton.getAttribute('aria-pressed') === 'true') {
+              inputs.push(otherPerformerAmount);
+          }
           
           if (inputs.length === 0) return;
 
@@ -1242,11 +1253,7 @@
 
               var otherInputs = inputs.filter(function(inp) { return inp !== changedInput; });
               
-              if (otherInputs.length === 1) {
-                  // Exactly two checkboxes checked: the other gets the exact remainder
-                  otherInputs[0].value = (pool - currentVal).toFixed(2);
-              } else if (otherInputs.length > 1) {
-                  // More than two checked: subtract excess from others
+              if (otherInputs.length > 0) {
                   var otherSum = 0;
                   otherInputs.forEach(function(inp) { otherSum += (parseFloat(inp.value)||0); });
                   
@@ -1277,6 +1284,8 @@
       }
 
       var otherPerformerButton = document.getElementById('other-performer-btn');
+      var otherPerformerAmount = document.getElementById('other-performer-amount');
+      var otherPerformerAmountWrap = document.getElementById('other-performer-amount-wrap');
       function setOtherPerformerSelected(selected) {
           otherPerformerButton.setAttribute('aria-pressed', selected ? 'true' : 'false');
           otherPerformerButton.style.background = selected ? '#fef3c7' : '#fff';
@@ -1287,12 +1296,24 @@
       otherPerformerButton.addEventListener('click', function() {
           var selected = this.getAttribute('aria-pressed') !== 'true';
           setOtherPerformerSelected(selected);
+          otherPerformerAmountWrap.style.display = selected ? 'block' : 'none';
           if (selected) {
               document.querySelectorAll('.staff-checkbox:checked').forEach(function(cb) {
                   cb.checked = false;
                   cb.dispatchEvent(new Event('change'));
               });
+              var allocatedToStaff = Array.from(document.querySelectorAll('.staff-checkbox:checked')).reduce(function(total, cb) {
+                  return total + (parseFloat(cb.closest('.staff-allocation-row').querySelector('.staff-amt-input').value) || 0);
+              }, 0);
+              var remaining = getAvailableCommissionPool() - allocatedToStaff;
+              otherPerformerAmount.value = remaining > 0 ? remaining.toFixed(2) : '0.00';
+          } else {
+              otherPerformerAmount.value = '';
           }
+      });
+
+      otherPerformerAmount.addEventListener('input', function() {
+          autoBalanceAllocations(this);
       });
 
       document.querySelectorAll('.staff-checkbox').forEach(function(cb) {
@@ -1302,6 +1323,8 @@
               
               if (this.checked) {
                   setOtherPerformerSelected(false);
+                  otherPerformerAmountWrap.style.display = 'none';
+                  otherPerformerAmount.value = '';
                   wrap.style.display = 'block';
                   
                   var pool = getAvailableCommissionPool();
@@ -1312,7 +1335,6 @@
                           currentAllocated += parseFloat(otherInp.value) || 0;
                       }
                   });
-                  
                   var remaining = pool - currentAllocated;
                   inp.value = remaining > 0 ? remaining.toFixed(2) : '0.00';
               } else {
@@ -1336,7 +1358,7 @@
         var checkedStaff = document.querySelectorAll('.staff-checkbox:checked');
         var otherPerformerSelected = otherPerformerButton.getAttribute('aria-pressed') === 'true';
         if (checkedStaff.length === 0 && !otherPerformerSelected) {
-            showPosError('⚠️ Please select at least one employee (Performed By) before completing the payment!');
+            showPosError('⚠️ Please select staff or Other (Performed By) before completing the payment!');
             document.getElementById('staff-section').scrollIntoView({ behavior: 'smooth', block: 'center' });
             return;
         }
@@ -1433,6 +1455,8 @@
           customer_name: custName,
           customer_phone: custPhone,
           staff_allocations: staffAllocations, // Sent as array of {id, amount}
+          other_performer_selected: otherPerformerSelected,
+          other_performer_amount: otherPerformerSelected ? (parseFloat(otherPerformerAmount.value) || 0) : null,
           rating: (document.querySelector('input[name="pay-rating"]:checked') || { value: 5 }).value
         };
         if (session.customer_id) payload.customer_id = session.customer_id;
