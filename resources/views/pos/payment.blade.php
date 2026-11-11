@@ -674,7 +674,7 @@
         </div>
 
         <div class="f-grp" id="staff-section">
-          <span class="f-lbl">Performed By (Staff) <span style="color:#ef4444; font-size:0.7rem; font-weight:800;">* Required</span></span>
+          <span class="f-lbl">Performed By (Staff) <span style="color:#ef4444; font-size:0.7rem; font-weight:800;">* Select staff or choose Other</span></span>
           <div style="background:#fafafa; border:1.5px solid #e2e8f0; border-radius:12px; padding:10px; max-height: 200px; overflow-y: auto;">
             @foreach($staff as $s)
               <div class="staff-allocation-row" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid #f1f5f9;">
@@ -691,6 +691,9 @@
               </div>
             @endforeach
           </div>
+          <button type="button" id="other-performer-btn" aria-pressed="false" style="margin-top:8px; padding:8px 12px; border:1.5px solid #cbd5e1; border-radius:8px; background:#fff; color:#475569; font-size:.85rem; font-weight:600; cursor:pointer;">
+            Other / No listed staff performed the service
+          </button>
         </div>
 
         <div class="f-grp">
@@ -1273,12 +1276,32 @@
           }
       }
 
+      var otherPerformerButton = document.getElementById('other-performer-btn');
+      function setOtherPerformerSelected(selected) {
+          otherPerformerButton.setAttribute('aria-pressed', selected ? 'true' : 'false');
+          otherPerformerButton.style.background = selected ? '#fef3c7' : '#fff';
+          otherPerformerButton.style.borderColor = selected ? '#c9a800' : '#cbd5e1';
+          otherPerformerButton.style.color = selected ? '#854d0e' : '#475569';
+      }
+
+      otherPerformerButton.addEventListener('click', function() {
+          var selected = this.getAttribute('aria-pressed') !== 'true';
+          setOtherPerformerSelected(selected);
+          if (selected) {
+              document.querySelectorAll('.staff-checkbox:checked').forEach(function(cb) {
+                  cb.checked = false;
+                  cb.dispatchEvent(new Event('change'));
+              });
+          }
+      });
+
       document.querySelectorAll('.staff-checkbox').forEach(function(cb) {
           cb.addEventListener('change', function() {
               var wrap = this.closest('.staff-allocation-row').querySelector('.staff-amt-wrap');
               var inp = wrap.querySelector('.staff-amt-input');
               
               if (this.checked) {
+                  setOtherPerformerSelected(false);
                   wrap.style.display = 'block';
                   
                   var pool = getAvailableCommissionPool();
@@ -1311,7 +1334,8 @@
 
         // ── MANDATORY: At least one employee must be selected ──
         var checkedStaff = document.querySelectorAll('.staff-checkbox:checked');
-        if (checkedStaff.length === 0) {
+        var otherPerformerSelected = otherPerformerButton.getAttribute('aria-pressed') === 'true';
+        if (checkedStaff.length === 0 && !otherPerformerSelected) {
             showPosError('⚠️ Please select at least one employee (Performed By) before completing the payment!');
             document.getElementById('staff-section').scrollIntoView({ behavior: 'smooth', block: 'center' });
             return;
