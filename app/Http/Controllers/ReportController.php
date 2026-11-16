@@ -11,6 +11,7 @@ use App\Models\ProductUsage;
 use App\Models\Service;
 use App\Models\Staff;
 use App\Models\StaffAttendance;
+use App\Models\LeaveRequest;
 use App\Models\Branch;
 use App\Models\DailyReport;
 use App\Models\Expense;
@@ -536,9 +537,17 @@ class ReportController extends Controller
 
         // Always fetch attendance records for this date to display check-in times
         $attendances = StaffAttendance::whereDate('attendance_date', $dateStr)->get()->keyBy('staff_id');
+        $staffOnLeave = LeaveRequest::where('status', 'approved')
+            ->whereDate('start_date', '<=', $dateStr)
+            ->whereDate('end_date', '>=', $dateStr)
+            ->whereIn('staff_id', $activeStaff->pluck('id'))
+            ->pluck('staff_id')
+            ->flip();
         $autoAttendance = [];
         foreach ($activeStaff as $st) {
-            if (isset($attendances[$st->id])) {
+            if (isset($staffOnLeave[$st->id])) {
+                $autoAttendance[$st->id] = 'Leave';
+            } elseif (isset($attendances[$st->id])) {
                 $att = $attendances[$st->id];
                 if ($att->status === 'absent' || $att->status === 'leave') {
                     $autoAttendance[$st->id] = 'Leave';
@@ -729,6 +738,7 @@ class ReportController extends Controller
             'dayOfWeek',
             'activeStaff',
             'report',
+            'staffOnLeave',
             'autoAttendance',
             'autoSales',
             'autoOnlinePayments',

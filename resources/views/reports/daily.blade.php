@@ -118,6 +118,16 @@
         letter-spacing: 0.02em;
     }
 
+    .sheet-table .staff-on-leave td {
+        background: #fee2e2 !important;
+        color: #b91c1c !important;
+    }
+
+    .sheet-table .staff-on-leave .sheet-input {
+        color: #b91c1c !important;
+        font-weight: 800;
+    }
+
     /* Input Cells */
     .sheet-input {
         width: 100%;
@@ -511,8 +521,11 @@
                     </thead>
                     <tbody>
                         @foreach($activeStaff as $st)
-                        @php $stVal = $savedStatus[$st->id] ?? ($autoAttendance[$st->id] ?? ''); @endphp
-                        <tr>
+                        @php
+                            $isOnLeave = isset($staffOnLeave[$st->id]) || strtolower(trim((string) ($savedStatus[$st->id] ?? ''))) === 'leave' || strtolower(trim((string) ($autoAttendance[$st->id] ?? ''))) === 'leave';
+                            $stVal = $isOnLeave ? 'Leave' : ($savedStatus[$st->id] ?? ($autoAttendance[$st->id] ?? ''));
+                        @endphp
+                        <tr class="{{ $isOnLeave ? 'staff-on-leave' : '' }}">
                             <td style="font-weight: 700; text-align: left; padding: 2px 4px; font-size: 0.78rem;">{{ $st->name }}</td>
                             <td style="padding: 1px;">
                                 <input type="text" class="sheet-input staff-status-input" data-staff-id="{{ $st->id }}" readonly value="{{ $stVal }}" style="font-size: 0.78rem; padding: 1px;" placeholder="Time or Leave">
