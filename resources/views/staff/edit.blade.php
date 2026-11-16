@@ -504,62 +504,6 @@
                 </div>
             </div>
 
-            {{-- Account & Role --}}
-            <div class="form-card">
-                <div class="form-card-head">
-                    <div class="form-card-head-icon">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"
-                            viewBox="0 0 24 24">
-                            <rect x="3" y="11" width="18" height="11" rx="2" />
-                            <path d="M7 11V7a5 5 0 0110 0v4" />
-                        </svg>
-                    </div>
-                    <span class="form-card-head-title">Account &amp; Role</span>
-                </div>
-                <div class="form-card-body">
-                    <div class="f-grid-2" style="margin-bottom:16px;">
-                        <div class="f-group">
-                            <label class="f-label">New Password <span>(leave blank to keep current)</span></label>
-                            <input type="password" name="password" class="f-input" placeholder="Min 8 characters">
-                        </div>
-                        <div class="f-group">
-                            <label class="f-label">Confirm New Password</label>
-                            <input type="password" name="password_confirmation" class="f-input"
-                                placeholder="Re-enter new password">
-                        </div>
-                    </div>
-                    <div class="f-grid-2">
-                        <div class="f-group">
-                            <label class="f-label">Assign Role <span>(optional)</span></label>
-                            <div class="role-row">
-                                <select name="staff_role_id" class="f-select">
-                                    <option value="">Select a Role...</option>
-                                    @foreach($roles as $role)
-                                        <option value="{{ $role->id }}" {{ old('staff_role_id', $staff->staff_role_id) == $role->id ? 'selected' : '' }}>{{ $role->name }}</option>
-                                    @endforeach
-                                </select>
-                                <a href="{{ route('staff-roles.create') }}" class="role-add-btn" title="Create New Role">
-                                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"
-                                        viewBox="0 0 24 24">
-                                        <line x1="12" y1="5" x2="12" y2="19" />
-                                        <line x1="5" y1="12" x2="19" y2="12" />
-                                    </svg>
-                                </a>
-                            </div>
-                        </div>
-                        <div class="f-group">
-                            <label class="f-label">Status</label>
-                            <div class="toggle-row" style="margin-top:10px;">
-                                <input type="checkbox" name="status" value="1" id="status-toggle" {{ old('status', $staff->status) ? 'checked' : '' }}>
-                                <label for="status-toggle"
-                                    style="font-size:.9rem;font-weight:600;color:#334155;cursor:pointer;">Active
-                                    Employee</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             {{-- Actions --}}
             <div class="form-actions">
                 <a href="{{ route('staff.index') }}" class="btn-cancel">Cancel</a>

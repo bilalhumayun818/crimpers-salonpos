@@ -565,7 +565,6 @@
             <div class="profile-banner">
                 <div class="profile-avatar-lg">{{ strtoupper(substr($staff->name, 0, 1)) }}</div>
                 <p class="profile-banner-name">{{ $staff->name }}</p>
-                <p class="profile-banner-role">{{ $staff->role->name ?? 'General Staff' }}</p>
             </div>
 
             <div class="profile-body">
