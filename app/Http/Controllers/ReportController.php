@@ -12,6 +12,7 @@ use App\Models\Service;
 use App\Models\Staff;
 use App\Models\StaffAttendance;
 use App\Models\LeaveRequest;
+use App\Models\InvoiceStaffCommission;
 use App\Models\Branch;
 use App\Models\DailyReport;
 use App\Models\Expense;
@@ -561,7 +562,7 @@ class ReportController extends Controller
         $start = $carbonDate->copy()->startOfDay();
         $end = $carbonDate->copy()->endOfDay();
 
-        $invoices = Invoice::with('staff')
+        $invoices = Invoice::with(['staff', 'staffCommissions'])
             ->where('branch_id', $branch->id)
             ->whereBetween('created_at', [$start, $end])
             ->get();
@@ -629,7 +630,17 @@ class ReportController extends Controller
                 $otherInvoices[] = $inv->other_performer_amount !== null
                     ? (float) $inv->other_performer_amount
                     : (float) $inv->payable_amount;
+            } elseif ($inv->staffCommissions->isNotEmpty()) {
+                // POS records each staff member's allocated service amount here.
+                // Use those allocations instead of assigning the full invoice to
+                // the first staff member stored on the invoice.
+                foreach ($inv->staffCommissions as $allocation) {
+                    if ((float) $allocation->allocated_amount > 0) {
+                        $staffInvoices[$allocation->staff_id][] = (float) $allocation->allocated_amount;
+                    }
+                }
             } elseif ($sId) {
+                // Older invoices may not have per-staff allocation records.
                 $staffInvoices[$sId][] = (float) $inv->payable_amount;
             } elseif ($inv->other_performer_amount !== null) {
                 $otherInvoices[] = (float) $inv->other_performer_amount;

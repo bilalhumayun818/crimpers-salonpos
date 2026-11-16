@@ -402,16 +402,18 @@
                         <td class="row-label" style="text-align: center !important;">{{ $r }}</td>
                         @foreach($activeStaff as $staff)
                             @php 
+                                $autoVal = $autoSales['rows'][$r][$staff->id] ?? null;
                                 $savedVal = $savedSales['rows'][$r][$staff->id] ?? null;
-                                $val = ($savedVal !== null && $savedVal !== '') ? $savedVal : ($autoSales['rows'][$r][$staff->id] ?? ''); 
+                                $val = ($autoVal !== null && $autoVal !== '') ? $autoVal : ($savedVal ?? '');
                             @endphp
                             <td>
                                 <input type="number" step="any" class="sheet-input sales-cell calc-trigger" data-row="{{ $r }}" data-staff-id="{{ $staff->id }}" readonly value="{{ $val }}">
                             </td>
                         @endforeach
                         @php
+                            $autoOtherVal = $autoSales['rows'][$r]['other'] ?? null;
                             $savedOtherVal = $savedSales['rows'][$r]['other'] ?? null;
-                            $otherVal = ($savedOtherVal !== null && $savedOtherVal !== '') ? $savedOtherVal : ($autoSales['rows'][$r]['other'] ?? '');
+                            $otherVal = ($autoOtherVal !== null && $autoOtherVal !== '') ? $autoOtherVal : ($savedOtherVal ?? '');
                         @endphp
                         <td>
                             <input type="number" step="any" class="sheet-input sales-cell calc-trigger" data-row="{{ $r }}" data-staff-id="other" readonly value="{{ $otherVal }}">
